@@ -1,18 +1,18 @@
 use std::ops::{Shl, Shr};
 
-pub struct Text {
+pub struct Character {
     tile_number: usize,
     horizontal_flip: bool,
     vertical_flip: bool,
     palette_number: usize,
 }
 
-impl Text {
+impl Character {
     pub fn new(tile_number: usize,
                horizontal_flip: bool,
                vertical_flip: bool,
                palette_number: usize,) -> Self {
-        Text { tile_number, horizontal_flip, vertical_flip, palette_number }
+        Character { tile_number, horizontal_flip, vertical_flip, palette_number }
     }
 
     fn tile_number(&self) -> usize {
@@ -33,7 +33,7 @@ impl Text {
 
 }
 
-impl Into<[u8; 2]> for Text {
+impl Into<[u8; 2]> for Character {
     fn into(self) -> [u8; 2] {
         let bytes: u16 = (self.tile_number & 0x3ff) as u16 |
             (self.horizontal_flip as u16).shl(10) |
@@ -43,7 +43,7 @@ impl Into<[u8; 2]> for Text {
     }
 }
 
-impl From<[u8; 2]> for Text {
+impl From<[u8; 2]> for Character {
     fn from(value: [u8; 2]) -> Self {
         let value = u16::from_be_bytes(value);
         let tile_number = (value & 0x3ff) as usize;
@@ -56,31 +56,31 @@ impl From<[u8; 2]> for Text {
 
 #[cfg(test)]
 mod tests {
-    use crate::screen::Text;
+    use crate::screen::Character;
 
     #[test]
     fn text_round_trip() {
-        let text = Text::new(1023, true, true, 15);
+        let text = Character::new(1023, true, true, 15);
         let bytes: [u8; 2] = text.into();
         assert_eq!(bytes, [0xff, 0xff]);
 
-        let text = Text::new(0, false, false, 0);
+        let text = Character::new(0, false, false, 0);
         let bytes: [u8; 2] = text.into();
         assert_eq!(bytes, [0x00, 0x00]);
 
-        let text = Text::new(16, false, false, 0);
+        let text = Character::new(16, false, false, 0);
         let bytes: [u8; 2] = text.into();
         assert_eq!(bytes, [0x00, 0x10]);
 
-        let text = Text::new(0, true, false, 0);
+        let text = Character::new(0, true, false, 0);
         let bytes: [u8; 2] = text.into();
         assert_eq!(bytes, [0x04, 0x00]);
 
-        let text = Text::new(0, false, true, 0);
+        let text = Character::new(0, false, true, 0);
         let bytes: [u8; 2] = text.into();
         assert_eq!(bytes, [0x08, 0x00]);
 
-        let text = Text::new(0, false, false, 7);
+        let text = Character::new(0, false, false, 7);
         let bytes: [u8; 2] = text.into();
         assert_eq!(bytes, [0x70, 0x00]);
     }
