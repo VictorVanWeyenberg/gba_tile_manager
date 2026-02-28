@@ -1,5 +1,6 @@
 use std::ops::{Shl, Shr};
 
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct Character {
     tile_number: usize,
     horizontal_flip: bool,
