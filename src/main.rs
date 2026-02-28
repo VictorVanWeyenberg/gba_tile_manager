@@ -1,5 +1,6 @@
 mod color;
 mod palette;
+mod screen;
 mod tile;
 
 fn main() {
