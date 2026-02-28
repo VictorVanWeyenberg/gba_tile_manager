@@ -56,7 +56,7 @@ impl From<[u8; 2]> for Character {
 
 #[cfg(test)]
 mod tests {
-    use crate::screen::Character;
+    use crate::character::Character;
 
     #[test]
     fn text_round_trip() {
