@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut, Shl, Shr};
 
-struct Tile {
+pub struct Tile {
     palette_indexes: [u8; 64] // Linear
 }
 
@@ -24,17 +24,18 @@ impl DerefMut for Tile {
     }
 }
 
-impl Into<Vec<u8>> for Tile {
-    fn into(self) -> Vec<u8> {
+impl Into<[u8; 32]> for Tile {
+    fn into(self) -> [u8; 32] {
         self.palette_indexes.chunks_exact(2)
             .map(|chunk| (chunk[0] & 0xf) | (chunk[1] & 0xf).shl(4))
-            .collect()
+            .collect::<Vec<u8>>()
+            .try_into()
+            .unwrap()
     }
 }
 
-impl From<Vec<u8>> for Tile {
-    fn from(value: Vec<u8>) -> Self {
-        let value = &value[0..32];
+impl From<[u8; 32]> for Tile {
+    fn from(value: [u8; 32]) -> Self {
         let palette_indexes = value.into_iter()
             .map(|ns| [ns & 0xf, (ns & 0xf0).shr(4)])
             .flatten()
@@ -57,7 +58,7 @@ mod tests {
         }
 
         let tile = Tile::new(palette_indexes);
-        let bytes: Vec<u8> = tile.into();
+        let bytes: [u8; 32] = tile.into();
 
         assert_eq!(&bytes[..5], &[0x10, 0x32, 0x54, 0x76, 0x08]);
         assert_eq!(&bytes[5..], &[0u8; 27]);
