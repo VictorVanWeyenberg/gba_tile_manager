@@ -17,7 +17,7 @@ impl Color {
     }
 }
 
-impl Into<[u8; 2]> for Color {
+impl Into<[u8; 2]> for &Color {
     fn into(self) -> [u8; 2] {
         let color: u16 = (self.r as u16) | (self.g as u16).shl(5) | (self.b as u16).shl(10);
         color.to_be_bytes()
@@ -47,35 +47,35 @@ mod tests {
     #[test]
     fn red_into() {
         let color = Color::new(31, 0, 0).unwrap();
-        let bytes: [u8; 2] = color.into();
+        let bytes: [u8; 2] = (&color).into();
         assert_eq!(bytes, [0, 0x1f])
     }
 
     #[test]
     fn green_into() {
         let color = Color::new(0, 31, 0).unwrap();
-        let bytes: [u8; 2] = color.into();
+        let bytes: [u8; 2] = (&color).into();
         assert_eq!(bytes, [0x3, 0xe0])
     }
 
     #[test]
     fn blue_into() {
         let color = Color::new(0, 0, 31).unwrap();
-        let bytes: [u8; 2] = color.into();
+        let bytes: [u8; 2] = (&color).into();
         assert_eq!(bytes, [0x7c, 0x0])
     }
 
     #[test]
     fn white_into() {
         let color = Color::new(31, 31, 31).unwrap();
-        let bytes: [u8; 2] = color.into();
+        let bytes: [u8; 2] = (&color).into();
         assert_eq!(bytes, [0x7f, 0xff])
     }
 
     #[test]
     fn black_into() {
         let color = Color::new(0, 0, 0).unwrap();
-        let bytes: [u8; 2] = color.into();
+        let bytes: [u8; 2] = (&color).into();
         assert_eq!(bytes, [0x00, 0x00])
     }
 

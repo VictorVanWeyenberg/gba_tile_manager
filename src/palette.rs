@@ -41,9 +41,9 @@ where
     }
 }
 
-impl Into<Vec<u8>> for Palette {
+impl Into<Vec<u8>> for &Palette {
     fn into(self) -> Vec<u8> {
-        self.colors.into_iter()
+        self.colors.iter()
             .map(|c| -> [u8; 2] { c.into() })
             .flatten()
             .collect()
@@ -65,7 +65,7 @@ mod tests {
         palette.push(Color::new(31, 31, 31).unwrap());
         palette.push(Color::new(0, 0, 0).unwrap());
 
-        let bytes: Vec<u8> = palette.into();
+        let bytes: Vec<u8> = (&palette).into();
         assert_eq!(bytes, vec![0x00, 0x1f, 0x03, 0xe0, 0x7c, 0x00, 0x7f, 0xff, 0x00, 0x00]);
 
         let read = BufReader::new(&bytes as &[u8]);

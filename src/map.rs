@@ -21,10 +21,10 @@ impl DerefMut for TileMap {
     }
 }
 
-impl Into<Vec<u8>> for TileMap {
+impl Into<Vec<u8>> for &TileMap {
     fn into(self) -> Vec<u8> {
-        self.tiles.into_iter()
-            .map::<[u8; 32], _>(Tile::into)
+        self.tiles.iter()
+            .map::<[u8; 32], _>(|tile| tile.into())
             .flatten()
             .collect()
     }

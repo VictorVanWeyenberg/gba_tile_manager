@@ -15,7 +15,7 @@ impl Screen {
     }
 }
 
-impl Into<Vec<u8>> for Screen {
+impl Into<Vec<u8>> for &Screen {
     fn into(self) -> Vec<u8> {
         let bytes: Vec<u8> = self.characters
             .into_iter()
@@ -59,7 +59,7 @@ mod tests {
         screen.set_character(Character::new(3, false, false, 3), 3, 0);
         screen.set_character(Character::new(4, false, false, 4), 4, 0);
 
-        let bytes: Vec<u8> = screen.into();
+        let bytes: Vec<u8> = (&screen).into();
         assert_eq!(bytes.len(), 10);
         assert_eq!(bytes, [0x00, 0x00, 0x10, 0x01, 0x20, 0x02, 0x30, 0x03, 0x40, 0x04]);
 

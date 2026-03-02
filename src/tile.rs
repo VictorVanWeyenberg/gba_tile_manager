@@ -25,7 +25,7 @@ impl DerefMut for Tile {
     }
 }
 
-impl Into<[u8; 32]> for Tile {
+impl Into<[u8; 32]> for &Tile {
     fn into(self) -> [u8; 32] {
         self.palette_indexes.chunks_exact(2)
             .map(|chunk| (chunk[0] & 0xf) | (chunk[1] & 0xf).shl(4))
@@ -59,7 +59,7 @@ mod tests {
         }
 
         let tile = Tile::new(palette_indexes);
-        let bytes: [u8; 32] = tile.into();
+        let bytes: [u8; 32] = (&tile).into();
 
         assert_eq!(&bytes[..5], &[0x10, 0x32, 0x54, 0x76, 0x08]);
         assert_eq!(&bytes[5..], &[0u8; 27]);
