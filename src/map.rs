@@ -2,6 +2,7 @@ use crate::tile::Tile;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
 
+#[derive(Debug)]
 pub struct TileMap {
     tiles: Vec<Tile>,
 }

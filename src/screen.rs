@@ -1,6 +1,6 @@
 use crate::character::Character;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Screen {
     characters: [[Character; 30]; 20],
 }

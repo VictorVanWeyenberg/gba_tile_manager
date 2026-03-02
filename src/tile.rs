@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut, Shl, Shr};
 
+#[derive(Debug)]
 pub struct Tile {
     palette_indexes: [u8; 64] // Linear
 }
