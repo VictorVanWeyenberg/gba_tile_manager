@@ -2,7 +2,7 @@ use crate::tile::Tile;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct TileMap {
     tiles: Vec<Tile>,
 }

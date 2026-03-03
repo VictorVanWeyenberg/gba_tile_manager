@@ -15,7 +15,7 @@ struct Structure {
     screens: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 struct VRamData {
     bg0_character_data: TileMap,
     bg0_screen_data: Screen,
@@ -23,7 +23,7 @@ struct VRamData {
     bg1_screen_data: Screen,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Project {
     name: String,
     path: PathBuf,
@@ -108,7 +108,11 @@ fn write_vram_data(
     Ok(())
 }
 
-fn write_screen_data(path: &PathBuf, file_name: &str, screen: &Screen) -> Result<(), ProjectIOError> {
+fn write_screen_data(
+    path: &PathBuf,
+    file_name: &str,
+    screen: &Screen,
+) -> Result<(), ProjectIOError> {
     let screen_location = path.join(file_name);
     let bytes: Vec<u8> = screen.into();
     Ok(fs::write(screen_location, bytes)?)
@@ -188,14 +192,37 @@ fn read_screen_data(path: &PathBuf, file_name: &str) -> Result<Screen, ProjectIO
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use crate::project::Project;
     use std::path::PathBuf;
+    use tempdir::TempDir;
 
-    #[test]
-    fn read_project() {
+    fn read_project() -> Project {
         let mut directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         directory.push("resources");
-        let project = Project::try_from(directory).unwrap();
-        println!("{:?}", project)
+        Project::try_from(directory).unwrap()
+    }
+
+    #[test]
+    fn project_round_trip() {
+        let temp_dir = TempDir::new("gba_tile_manager::project::tests::project_round_trip")
+            .unwrap()
+            .path()
+            .to_owned();
+        fs::create_dir(temp_dir.clone()).unwrap();
+
+        let mut this = read_project();
+        this.path = temp_dir.clone();
+        this.save().unwrap();
+
+        let that = Project::try_from(temp_dir).unwrap();
+
+        for (key, value) in this.screens {
+            let other_value = that.screens.get(&key).unwrap();
+            assert_eq!(value.bg0_screen_data, other_value.bg0_screen_data);
+            assert_eq!(value.bg1_screen_data, other_value.bg1_screen_data);
+            assert_eq!(value.bg0_character_data, other_value.bg0_character_data);
+            assert_eq!(value.bg1_character_data, other_value.bg1_character_data);
+        }
     }
 }

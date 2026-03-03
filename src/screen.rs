@@ -1,6 +1,6 @@
 use crate::character::Character;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Eq, PartialEq)]
 pub struct Screen {
     characters: [[Character; 30]; 20],
 }
@@ -24,9 +24,9 @@ impl Into<Vec<u8>> for &Screen {
             .flatten()
             .collect();
 
-        bytes.iter()
-            .rposition(|&b| b != 0)
-            .map_or(&[][..], |i| &bytes[..=i])
+        bytes.chunks_exact(2)
+            .rposition(|b| b[0] != 0 || b[1] != 0)
+            .map_or(&[][..], |i| &bytes[..=i * 2 + 1])
             .try_into()
             .unwrap()
     }
