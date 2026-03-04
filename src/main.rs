@@ -1,11 +1,6 @@
-mod character;
-mod color;
-mod err;
-mod map;
-mod palette;
-mod project;
-mod screen;
-mod tile;
+mod domain;
+
+pub use domain::*;
 
 fn main() {
     println!("Hello, world!");
