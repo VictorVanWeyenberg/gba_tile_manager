@@ -1,7 +1,15 @@
 mod domain;
+mod png;
 
+use std::path::PathBuf;
 pub use domain::*;
+use crate::png::project_to_pngs;
+use crate::project::Project;
 
 fn main() {
-    println!("Hello, world!");
+    let mut directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    directory.push("resources");
+    let project = Project::try_from(directory).unwrap();
+
+    project_to_pngs(&project);
 }

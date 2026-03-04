@@ -15,18 +15,22 @@ impl Color {
             _ => Ok(Color { r, g, b })
         }
     }
+
+    pub fn as_png_rgba(&self) -> [u8; 4] {
+        [self.r * 8, self.g * 8, self.b * 8, 255]
+    }
 }
 
 impl Into<[u8; 2]> for &Color {
     fn into(self) -> [u8; 2] {
         let color: u16 = (self.r as u16) | (self.g as u16).shl(5) | (self.b as u16).shl(10);
-        color.to_be_bytes()
+        color.to_le_bytes()
     }
 }
 
 impl From<[u8; 2]> for Color {
     fn from(value: [u8; 2]) -> Self {
-        let value = u16::from_be_bytes(value);
+        let value = u16::from_le_bytes(value);
         let r = (value & 0x001f) as u8;
         let g = (value & 0x03e0).shr(5) as u8;
         let b = (value & 0x7c00).shr(10) as u8;
@@ -48,28 +52,28 @@ mod tests {
     fn red_into() {
         let color = Color::new(31, 0, 0).unwrap();
         let bytes: [u8; 2] = (&color).into();
-        assert_eq!(bytes, [0, 0x1f])
+        assert_eq!(bytes, [0x1f, 0x00])
     }
 
     #[test]
     fn green_into() {
         let color = Color::new(0, 31, 0).unwrap();
         let bytes: [u8; 2] = (&color).into();
-        assert_eq!(bytes, [0x3, 0xe0])
+        assert_eq!(bytes, [0xe0, 0x03])
     }
 
     #[test]
     fn blue_into() {
         let color = Color::new(0, 0, 31).unwrap();
         let bytes: [u8; 2] = (&color).into();
-        assert_eq!(bytes, [0x7c, 0x0])
+        assert_eq!(bytes, [0x00, 0x7c])
     }
 
     #[test]
     fn white_into() {
         let color = Color::new(31, 31, 31).unwrap();
         let bytes: [u8; 2] = (&color).into();
-        assert_eq!(bytes, [0x7f, 0xff])
+        assert_eq!(bytes, [0xff, 0x7f])
     }
 
     #[test]
@@ -81,7 +85,7 @@ mod tests {
 
     #[test]
     fn from_red() {
-        let bytes = [0x00, 0x1f];
+        let bytes = [0x1f, 0x00];
         let color = Color::from(bytes);
         assert_eq!(color.r, 31);
         assert_eq!(color.g, 0);
@@ -90,7 +94,7 @@ mod tests {
 
     #[test]
     fn from_green() {
-        let bytes = [0x03, 0xe0];
+        let bytes = [0xe0, 0x03];
         let color = Color::from(bytes);
         assert_eq!(color.r, 0);
         assert_eq!(color.g, 31);
@@ -99,7 +103,7 @@ mod tests {
 
     #[test]
     fn from_blue() {
-        let bytes = [0x7c, 0x00];
+        let bytes = [0x00, 0x7c];
         let color = Color::from(bytes);
         assert_eq!(color.r, 0);
         assert_eq!(color.g, 0);
@@ -108,7 +112,7 @@ mod tests {
 
     #[test]
     fn from_white() {
-        let bytes = [0x7f, 0xff];
+        let bytes = [0xff, 0x7f];
         let color = Color::from(bytes);
         assert_eq!(color.r, 31);
         assert_eq!(color.g, 31);

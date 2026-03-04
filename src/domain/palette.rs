@@ -66,7 +66,7 @@ mod tests {
         palette.push(Color::new(0, 0, 0).unwrap());
 
         let bytes: Vec<u8> = (&palette).into();
-        assert_eq!(bytes, vec![0x00, 0x1f, 0x03, 0xe0, 0x7c, 0x00, 0x7f, 0xff, 0x00, 0x00]);
+        assert_eq!(bytes, vec![0x1f, 0x00, 0xe0, 0x03, 0x00, 0x7c, 0xff, 0x7f, 0x00, 0x00]);
 
         let read = BufReader::new(&bytes as &[u8]);
         let mut palette = Palette::from(read);

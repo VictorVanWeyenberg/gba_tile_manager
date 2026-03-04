@@ -2,7 +2,7 @@ use crate::character::Character;
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct Screen {
-    characters: [[Character; 30]; 20],
+    characters: [[Character; 32]; 32],
 }
 
 impl Screen {
@@ -58,10 +58,11 @@ mod tests {
         screen.set_character(Character::new(2, false, false, 2), 2, 0);
         screen.set_character(Character::new(3, false, false, 3), 3, 0);
         screen.set_character(Character::new(4, false, false, 4), 4, 0);
+        screen.set_character(Character::new(5, false, false, 5), 0, 1);
 
         let bytes: Vec<u8> = (&screen).into();
-        assert_eq!(bytes.len(), 10);
-        assert_eq!(bytes, [0x00, 0x00, 0x10, 0x01, 0x20, 0x02, 0x30, 0x03, 0x40, 0x04]);
+        assert_eq!(bytes.len(), 66);
+        assert_eq!(bytes[..10], [0x00, 0x00, 0x01, 0x10, 0x02, 0x20, 0x03, 0x30, 0x04, 0x40]);
 
         let screen = Screen::from(bytes);
 
@@ -70,11 +71,13 @@ mod tests {
         assert_eq!(screen.get_character(2, 0), &Character::new(2, false, false, 2));
         assert_eq!(screen.get_character(3, 0), &Character::new(3, false, false, 3));
         assert_eq!(screen.get_character(4, 0), &Character::new(4, false, false, 4));
+        assert_eq!(screen.get_character(0, 1), &Character::new(5, false, false, 5));
 
         for x in 0..30 {
             for y in 0..20 {
                 match (x, y) {
                     (x, 0) if x < 5 => continue,
+                    (0, 1) => continue,
                     _ => assert_eq!(screen.get_character(x, y), &Character::new(0, false, false, 0)),
                 }
             }

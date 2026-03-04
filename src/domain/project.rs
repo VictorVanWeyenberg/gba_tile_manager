@@ -16,11 +16,11 @@ struct Structure {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-struct VRamData {
-    bg0_character_data: TileMap,
-    bg0_screen_data: Screen,
-    bg1_character_data: TileMap,
-    bg1_screen_data: Screen,
+pub struct VRamData {
+    pub bg0_character_data: TileMap,
+    pub bg0_screen_data: Screen,
+    pub bg1_character_data: TileMap,
+    pub bg1_screen_data: Screen,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -59,6 +59,55 @@ impl Project {
         }
         Ok(())
     }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+
+    pub fn background_palette(&self) -> &Palette {
+        &self.background_palette
+    }
+
+    pub fn object_palette(&self) -> &Palette {
+        &self.object_palette
+    }
+
+    pub fn object_character_data(&self) -> &TileMap {
+        &self.object_character_data
+    }
+
+    pub fn screens(&self) -> &HashMap<String, VRamData> {
+        &self.screens
+    }
+
+    pub fn name_mut(&mut self) -> &mut String {
+        &mut self.name
+    }
+
+    pub fn path_mut(&mut self) -> &mut PathBuf {
+        &mut self.path
+    }
+
+    pub fn background_palette_mut(&mut self) -> &mut Palette {
+        &mut self.background_palette
+    }
+
+    pub fn object_palette_mut(&mut self) -> &mut Palette {
+        &mut self.object_palette
+    }
+
+    pub fn object_character_data_mut(&mut self) -> &mut TileMap {
+        &mut self.object_character_data
+    }
+
+    pub fn screens_mut(&mut self) -> &mut HashMap<String, VRamData> {
+        &mut self.screens
+    }
+
 }
 
 fn write_structure(path: &PathBuf, structure: Structure) -> Result<(), ProjectIOError> {
@@ -193,7 +242,7 @@ fn read_screen_data(path: &PathBuf, file_name: &str) -> Result<Screen, ProjectIO
 #[cfg(test)]
 mod tests {
     use std::fs;
-    use crate::project::Project;
+    use crate::project::{Project, VRamData};
     use std::path::PathBuf;
     use tempdir::TempDir;
 
@@ -217,12 +266,16 @@ mod tests {
 
         let that = Project::try_from(temp_dir).unwrap();
 
-        for (key, value) in this.screens {
-            let other_value = that.screens.get(&key).unwrap();
-            assert_eq!(value.bg0_screen_data, other_value.bg0_screen_data);
-            assert_eq!(value.bg1_screen_data, other_value.bg1_screen_data);
-            assert_eq!(value.bg0_character_data, other_value.bg0_character_data);
-            assert_eq!(value.bg1_character_data, other_value.bg1_character_data);
-        }
+        assert_eq!(this, that);
+
+        let VRamData {
+            bg0_character_data,
+            bg0_screen_data,
+            bg1_character_data,
+            bg1_screen_data,
+        } = that.screens.get("empty_art").unwrap();
+
+        let bg0_character = bg0_screen_data.get_character(0, 0);
+        println!("{:?}", bg0_character);
     }
 }

@@ -16,19 +16,19 @@ impl Character {
         Character { tile_number, horizontal_flip, vertical_flip, palette_number }
     }
 
-    fn tile_number(&self) -> usize {
+    pub fn tile_number(&self) -> usize {
         self.tile_number
     }
 
-    fn horizontal_flip(&self) -> bool {
+    pub fn horizontal_flip(&self) -> bool {
         self.horizontal_flip
     }
 
-    fn vertical_flip(&self) -> bool {
+    pub fn vertical_flip(&self) -> bool {
         self.vertical_flip
     }
 
-    fn palette_number(&self) -> usize {
+    pub fn palette_number(&self) -> usize {
         self.palette_number
     }
 
@@ -40,13 +40,13 @@ impl Into<[u8; 2]> for Character {
             (self.horizontal_flip as u16).shl(10) |
             (self.vertical_flip as u16).shl(11) |
             ((self.palette_number & 0xf) as u16).shl(12);
-        bytes.to_be_bytes()
+        bytes.to_le_bytes()
     }
 }
 
 impl From<[u8; 2]> for Character {
     fn from(value: [u8; 2]) -> Self {
-        let value = u16::from_be_bytes(value);
+        let value = u16::from_le_bytes(value);
         let tile_number = (value & 0x3ff) as usize;
         let horizontal_flip = value & 0x400 > 0;
         let vertical_flip = value & 0x800 > 0;
@@ -71,19 +71,19 @@ mod tests {
 
         let text = Character::new(16, false, false, 0);
         let bytes: [u8; 2] = text.into();
-        assert_eq!(bytes, [0x00, 0x10]);
+        assert_eq!(bytes, [0x10, 0x00]);
 
         let text = Character::new(0, true, false, 0);
         let bytes: [u8; 2] = text.into();
-        assert_eq!(bytes, [0x04, 0x00]);
+        assert_eq!(bytes, [0x00, 0x04]);
 
         let text = Character::new(0, false, true, 0);
         let bytes: [u8; 2] = text.into();
-        assert_eq!(bytes, [0x08, 0x00]);
+        assert_eq!(bytes, [0x00, 0x08]);
 
         let text = Character::new(0, false, false, 7);
         let bytes: [u8; 2] = text.into();
-        assert_eq!(bytes, [0x70, 0x00]);
+        assert_eq!(bytes, [0x00, 0x70]);
     }
 }
 
