@@ -1,5 +1,6 @@
 mod domain;
 mod png;
+mod render;
 
 use std::path::PathBuf;
 pub use domain::*;
