@@ -1,3 +1,4 @@
+use std::cmp::max;
 use crate::color::Color;
 use crate::palette::Palette;
 use crate::project::{Project, VRamData};
@@ -19,16 +20,19 @@ pub struct ImageData<'c> {
 pub fn render_palette(palette: &Palette) -> ImageData<'_> {
     ImageData {
         palette: palette.iter().collect(),
-        data: (0usize..256)
+        data: (0usize..16384)
             .map(|idx| {
-                if idx >= palette.len() {
-                    0u8
+                let row = idx.unbounded_shr(11);
+                let column = (idx % 128) / 16;
+                let palette_index = row * 16 + column;
+                if palette_index <= palette.len() {
+                    palette_index as u8
                 } else {
-                    idx as u8
+                    0u8
                 }
             })
             .collect::<Vec<u8>>(),
-        dimensions: (16, 16),
+        dimensions: (16 * 8, 16 * 8),
     }
 }
 
