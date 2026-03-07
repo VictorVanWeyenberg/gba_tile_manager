@@ -2,18 +2,19 @@ use crate::color::Color;
 use crate::project::{Project, VRamData};
 use crate::tile::Tile;
 
-pub struct ImageData<'c> {
-    pub palette: Vec<&'c Color>,
-    pub data: Vec<u8>
-}
-
-/// For a 3x2 image, this method will return an image data object with data [1, 2, 3, 4, 5, 6]
-/// that's supposed to be rendered as follows.
+/// For a 3x2 image, image data will have data [1, 2, 3, 4, 5, 6] that's supposed to be rendered as
+/// follows.
 ///
 /// ```
 /// 1 2 3
 /// 4 5 6
 /// ```
+pub struct ImageData<'c> {
+    pub palette: Vec<&'c Color>,
+    pub data: Vec<u8>,
+    pub dimensions: (u32, u32),
+}
+
 pub fn render_screen<'c>(
     project: &'c Project,
     VRamData {
@@ -68,7 +69,8 @@ pub fn render_screen<'c>(
 
     ImageData {
         palette: background_palette.iter().collect(),
-        data
+        data,
+        dimensions: (240, 160),
     }
 }
 

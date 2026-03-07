@@ -2,23 +2,13 @@ use crate::color::Color;
 use crate::project::{Project, VRamData};
 use crate::render;
 use crate::render::ImageData;
-use std::fs::File;
-use std::io::BufWriter;
-use std::path::PathBuf;
+use std::io::Write;
 
-pub fn project_to_pngs(project: &Project) {
-    for (name, vram_data) in project.screens() {
-        screen_to_png(project, name, vram_data);
-    }
+pub fn screen_to_png(project: &Project, vram_data: &VRamData, writer: impl Write) {
+    image_data_to_png(render::render_screen(project, vram_data), writer)
 }
 
-fn screen_to_png(project: &Project, name: &str, vram_data: &VRamData) {
-    let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    file.push(format!("{}.png", name));
-    let file = File::create(file).unwrap();
-    let ref mut w = BufWriter::new(file);
-
-    let ImageData { palette, data } = render::render_screen(project, vram_data);
+fn image_data_to_png(ImageData { palette, data, dimensions: (width, height) }: ImageData, writer: impl Write) {
     let palette: Vec<u8> = palette
         .into_iter()
         .map(Color::as_png_rgb)
@@ -29,7 +19,7 @@ fn screen_to_png(project: &Project, name: &str, vram_data: &VRamData) {
         .map(|idx| (idx[0] << 4) | idx[1])
         .collect();
 
-    let mut encoder = png::Encoder::new(w, 240, 160);
+    let mut encoder = png::Encoder::new(writer, width, height);
     encoder.set_color(png::ColorType::Indexed);
     encoder.set_depth(png::BitDepth::Four);
     encoder.set_palette(palette);
