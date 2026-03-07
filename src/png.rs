@@ -3,6 +3,13 @@ use crate::project::{Project, VRamData};
 use crate::render;
 use crate::render::ImageData;
 use std::io::Write;
+use crate::palette::Palette;
+
+pub fn palette_to_png(palette: &Palette) -> Vec<u8> {
+    let mut writer = vec![];
+    image_data_to_png(render::render_palette(palette), &mut writer);
+    writer
+}
 
 pub fn screen_to_png(project: &Project, vram_data: &VRamData) -> Vec<u8> {
     let mut writer = vec![];

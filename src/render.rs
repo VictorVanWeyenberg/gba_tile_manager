@@ -1,4 +1,5 @@
 use crate::color::Color;
+use crate::palette::Palette;
 use crate::project::{Project, VRamData};
 use crate::tile::Tile;
 
@@ -13,6 +14,22 @@ pub struct ImageData<'c> {
     pub palette: Vec<&'c Color>,
     pub data: Vec<u8>,
     pub dimensions: (u32, u32),
+}
+
+pub fn render_palette(palette: &Palette) -> ImageData<'_> {
+    ImageData {
+        palette: palette.iter().collect(),
+        data: (0usize..256)
+            .map(|idx| {
+                if idx >= palette.len() {
+                    0u8
+                } else {
+                    idx as u8
+                }
+            })
+            .collect::<Vec<u8>>(),
+        dimensions: (16, 16),
+    }
 }
 
 pub fn render_screen<'c>(

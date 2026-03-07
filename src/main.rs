@@ -2,7 +2,7 @@ mod domain;
 mod png;
 mod render;
 
-use crate::png::screen_to_png;
+use crate::png::{palette_to_png, screen_to_png};
 use crate::project::Project;
 pub use domain::*;
 use std::fs;
@@ -18,4 +18,11 @@ fn main() {
 
     let data = screen_to_png(&project, project.screens().get("empty_art").unwrap());
     fs::write(file, &data).unwrap();
+
+    let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    file.push("resources/background_palette.png");
+
+    let data = palette_to_png(project.background_palette());
+    fs::write(file, &data).unwrap();
+
 }
