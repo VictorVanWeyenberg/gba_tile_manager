@@ -5,8 +5,7 @@ mod render;
 use crate::png::screen_to_png;
 use crate::project::Project;
 pub use domain::*;
-use std::fs::File;
-use std::io::BufWriter;
+use std::fs;
 use std::path::PathBuf;
 
 fn main() {
@@ -16,8 +15,7 @@ fn main() {
 
     let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     file.push("resources/empty_art.png");
-    let file = File::create(file).unwrap();
-    let ref mut writer = BufWriter::new(file);
 
-    screen_to_png(&project, project.screens().get("empty_art").unwrap(), writer);
+    let data = screen_to_png(&project, project.screens().get("empty_art").unwrap());
+    fs::write(file, &data).unwrap();
 }

@@ -4,8 +4,10 @@ use crate::render;
 use crate::render::ImageData;
 use std::io::Write;
 
-pub fn screen_to_png(project: &Project, vram_data: &VRamData, writer: impl Write) {
-    image_data_to_png(render::render_screen(project, vram_data), writer)
+pub fn screen_to_png(project: &Project, vram_data: &VRamData) -> Vec<u8> {
+    let mut writer = vec![];
+    image_data_to_png(render::render_screen(project, vram_data), &mut writer);
+    writer
 }
 
 fn image_data_to_png(ImageData { palette, data, dimensions: (width, height) }: ImageData, writer: impl Write) {
