@@ -16,8 +16,8 @@ impl Color {
         }
     }
 
-    pub fn as_png_rgba(&self) -> [u8; 4] {
-        [self.r * 8, self.g * 8, self.b * 8, 255]
+    pub fn as_png_rgb(&self) -> [u8; 3] {
+        [self.r * 8, self.g * 8, self.b * 8]
     }
 }
 
