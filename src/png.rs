@@ -4,6 +4,7 @@ use crate::render;
 use crate::render::ImageData;
 use std::io::Write;
 use crate::palette::Palette;
+use crate::tile::Tile;
 
 pub fn palette_to_png(palette: &Palette) -> Vec<u8> {
     let mut writer = vec![];
@@ -14,6 +15,12 @@ pub fn palette_to_png(palette: &Palette) -> Vec<u8> {
 pub fn screen_to_png(project: &Project, vram_data: &VRamData) -> Vec<u8> {
     let mut writer = vec![];
     image_data_to_png(render::render_screen(project.background_palette(), vram_data), &mut writer);
+    writer
+}
+
+pub fn tile_to_png(palette: &Palette, tile: &Tile) -> Vec<u8> {
+    let mut writer = vec![];
+    image_data_to_png(render::render_tile(palette, tile), &mut writer);
     writer
 }
 

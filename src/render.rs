@@ -1,7 +1,7 @@
-use std::cmp::max;
 use crate::color::Color;
+use crate::map::TileMap;
 use crate::palette::Palette;
-use crate::project::{Project, VRamData};
+use crate::project::VRamData;
 use crate::tile::Tile;
 
 /// For a 3x2 image, image data will have data [1, 2, 3, 4, 5, 6] that's supposed to be rendered as
@@ -33,6 +33,22 @@ pub fn render_palette(palette: &Palette) -> ImageData<'_> {
             })
             .collect::<Vec<u8>>(),
         dimensions: (16 * 8, 16 * 8),
+    }
+}
+
+pub fn render_tiles<'c>(palette: &'c Palette, tile_map: &TileMap) -> Vec<ImageData<'c>> {
+    tile_map.iter()
+        .map(|tile| render_tile(palette, tile))
+        .collect()
+}
+
+pub fn render_tile<'c>(palette: &'c Palette, tile: &Tile) -> ImageData<'c> {
+    let palette = palette.iter().collect();
+    let data = (**tile).to_vec();
+    ImageData {
+        palette,
+        data,
+        dimensions: (8, 8),
     }
 }
 
