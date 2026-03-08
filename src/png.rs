@@ -13,7 +13,7 @@ pub fn palette_to_png(palette: &Palette) -> Vec<u8> {
 
 pub fn screen_to_png(project: &Project, vram_data: &VRamData) -> Vec<u8> {
     let mut writer = vec![];
-    image_data_to_png(render::render_screen(project, vram_data), &mut writer);
+    image_data_to_png(render::render_screen(project.background_palette(), vram_data), &mut writer);
     writer
 }
 

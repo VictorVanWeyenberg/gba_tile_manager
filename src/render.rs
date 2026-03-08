@@ -37,7 +37,7 @@ pub fn render_palette(palette: &Palette) -> ImageData<'_> {
 }
 
 pub fn render_screen<'c>(
-    project: &'c Project,
+    palette: &'c Palette,
     VRamData {
         bg0_character_data,
         bg0_screen_data,
@@ -45,7 +45,6 @@ pub fn render_screen<'c>(
         bg1_screen_data,
     }: &VRamData,
 ) -> ImageData<'c> {
-    let background_palette = project.background_palette();
     let mut data = vec![0u8; 240 * 160];
 
     for y in 0..20 {
@@ -89,7 +88,7 @@ pub fn render_screen<'c>(
     }
 
     ImageData {
-        palette: background_palette.iter().collect(),
+        palette: palette.iter().collect(),
         data,
         dimensions: (240, 160),
     }
