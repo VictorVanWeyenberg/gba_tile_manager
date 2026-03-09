@@ -16,7 +16,7 @@ fn main() {
     let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     file.push("resources/empty_art.png");
 
-    let data = screen_to_png(&project, project.screens().get("empty_art").unwrap());
+    let data = screen_to_png(project.background_palette(), project.screens().get("empty_art").unwrap());
     fs::write(file, &data).unwrap();
 
     let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

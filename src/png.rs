@@ -12,15 +12,15 @@ pub fn palette_to_png(palette: &Palette) -> Vec<u8> {
     writer
 }
 
-pub fn screen_to_png(project: &Project, vram_data: &VRamData) -> Vec<u8> {
-    let mut writer = vec![];
-    image_data_to_png(render::render_screen(project.background_palette(), vram_data), &mut writer);
-    writer
-}
-
 pub fn tile_to_png(palette: &Palette, tile: &Tile) -> Vec<u8> {
     let mut writer = vec![];
     image_data_to_png(render::render_tile(palette, tile), &mut writer);
+    writer
+}
+
+pub fn screen_to_png(palette: &Palette, vram_data: &VRamData) -> Vec<u8> {
+    let mut writer = vec![];
+    image_data_to_png(render::render_screen(palette, vram_data), &mut writer);
     writer
 }
 
