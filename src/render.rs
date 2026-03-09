@@ -10,6 +10,7 @@ pub trait ImageData {
     fn data(&self) -> &Vec<u8>;
     fn trns(&self) -> impl Into<Cow<'_, [u8]>>;
     fn dimensions(&self) -> &(usize, usize);
+    fn scale(self, factor: usize) -> Self;
 }
 
 /// For a 3x2 image, image data will have data [1, 2, 3, 4, 5, 6] that's supposed to be rendered as
@@ -41,6 +42,24 @@ impl<'c, const N: usize> ImageData for OpaqueImageData<'c, N> {
     fn dimensions(&self) -> &(usize, usize) {
         &self.dimensions
     }
+
+    fn scale(self, factor: usize) -> Self {
+        let Self {
+            palette,
+            data,
+            dimensions: (width, height),
+        } = self;
+        let dimensions = (width * factor, height * factor);
+        let data = from_dimensions(&dimensions, |idx| {
+            let index = scaled_palette_index(factor, idx, &dimensions);
+            data[index]
+        });
+        Self {
+            palette,
+            data,
+            dimensions,
+        }
+    }
 }
 
 struct TransparencyImageData<'c, const N: usize> {
@@ -64,23 +83,32 @@ impl<'c, const N: usize> ImageData for TransparencyImageData<'c, N> {
     fn dimensions(&self) -> &(usize, usize) {
         &self.opaque.dimensions
     }
+
+    fn scale(self, factor: usize) -> Self {
+        let Self { opaque, trns } = self;
+        let opaque = opaque.scale(factor);
+        let trns = from_dimensions(opaque.dimensions(), |idx| {
+            let index = scaled_palette_index(factor, idx, opaque.dimensions());
+            trns[index]
+        });
+        Self { opaque, trns }
+    }
 }
 
-fn from_fn((width, height): &(usize, usize), map: impl Fn(usize) -> u8) -> Vec<u8> {
+fn from_dimensions((width, height): &(usize, usize), map: impl Fn(usize) -> u8) -> Vec<u8> {
     (0usize..width * height).map(map).collect::<Vec<u8>>()
 }
 
 pub fn render_palette(palette: &Palette) -> impl ImageData {
-    let dimensions = (16 * 8, 16 * 8);
-    let data = from_fn(&dimensions, |idx| {
-        let palette_index = enlarged_palette_index(8, idx, &dimensions);
-        if palette_index < palette.len() {
-            palette_index as u8
+    let dimensions = (16, 16);
+    let data = from_dimensions(&dimensions, |idx| {
+        if idx < palette.len() {
+            idx as u8
         } else {
             0u8
         }
     });
-    OpaqueImageData::<'_, 16384> {
+    OpaqueImageData::<'_, 256> {
         palette: palette.iter().collect(),
         data,
         dimensions,
@@ -94,7 +122,7 @@ pub fn render_tiles(palette: &Palette, tile_map: &TileMap) -> Vec<impl ImageData
         .collect()
 }
 
-fn enlarged_palette_index(
+fn scaled_palette_index(
     factor: usize,
     pixel_index: usize,
     (width, height): &(usize, usize),
@@ -105,17 +133,9 @@ fn enlarged_palette_index(
 }
 
 pub fn render_tile(palette: &Palette, tile: &Tile) -> impl ImageData {
-    let dimensions = (64, 64);
-    let data = from_fn(&dimensions, |idx| {
-        let tile_index = enlarged_palette_index(8, idx, &dimensions);
-        let palette_index = tile[tile_index] as usize;
-        if palette_index < palette.len() {
-            palette_index as u8
-        } else {
-            0u8
-        }
-    });
-    OpaqueImageData::<'_, 4096> {
+    let dimensions = (8, 8);
+    let data = tile.to_vec();
+    OpaqueImageData::<'_, 64> {
         palette: palette.iter().collect(),
         data,
         dimensions,

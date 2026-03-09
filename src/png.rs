@@ -8,13 +8,13 @@ use std::io::Write;
 
 pub fn palette_to_png(palette: &Palette) -> Vec<u8> {
     let mut writer = vec![];
-    image_data_to_png(render::render_palette(palette), &mut writer);
+    image_data_to_png(render::render_palette(palette).scale(8), &mut writer);
     writer
 }
 
 pub fn tile_to_png(palette: &Palette, tile: &Tile) -> Vec<u8> {
     let mut writer = vec![];
-    image_data_to_png(render::render_tile(palette, tile), &mut writer);
+    image_data_to_png(render::render_tile(palette, tile).scale(8), &mut writer);
     writer
 }
 
