@@ -43,12 +43,22 @@ pub fn render_tiles<'c>(palette: &'c Palette, tile_map: &TileMap) -> Vec<ImageDa
 }
 
 pub fn render_tile<'c>(palette: &'c Palette, tile: &Tile) -> ImageData<'c> {
-    let palette = palette.iter().collect();
-    let data = (**tile).to_vec();
     ImageData {
-        palette,
-        data,
-        dimensions: (8, 8),
+        palette: palette.iter().collect(),
+        data: (0usize..4096)
+            .map(|idx| {
+                let row = idx.unbounded_shr(9);
+                let column = (idx % 64) / 8;
+                let tile_index = row * 8 + column;
+                let palette_index = tile[tile_index] as usize;
+                if palette_index <= palette.len() {
+                    palette_index as u8
+                } else {
+                    0u8
+                }
+            })
+            .collect::<Vec<u8>>(),
+        dimensions: (64, 64),
     }
 }
 
