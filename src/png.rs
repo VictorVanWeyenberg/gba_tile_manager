@@ -36,7 +36,7 @@ fn image_data_to_png(image_data: impl ImageData, writer: impl Write) {
         .collect();
 
     let (width, height) = image_data.dimensions();
-    let mut encoder = png::Encoder::new(writer, *width, *height);
+    let mut encoder = png::Encoder::new(writer, *width as u32, *height as u32);
     encoder.set_color(png::ColorType::Indexed);
     encoder.set_depth(png::BitDepth::Four);
     encoder.set_palette(palette);

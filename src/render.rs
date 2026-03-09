@@ -1,15 +1,15 @@
-use std::borrow::Cow;
 use crate::color::Color;
 use crate::map::TileMap;
 use crate::palette::Palette;
 use crate::screen::Screen;
 use crate::tile::Tile;
+use std::borrow::Cow;
 
 pub trait ImageData {
     fn palette(&self) -> &Vec<&Color>;
     fn data(&self) -> &Vec<u8>;
     fn trns(&self) -> impl Into<Cow<'_, [u8]>>;
-    fn dimensions(&self) -> &(u32, u32);
+    fn dimensions(&self) -> &(usize, usize);
 }
 
 /// For a 3x2 image, image data will have data [1, 2, 3, 4, 5, 6] that's supposed to be rendered as
@@ -22,7 +22,7 @@ pub trait ImageData {
 struct OpaqueImageData<'c, const N: usize> {
     palette: Vec<&'c Color>,
     data: Vec<u8>,
-    dimensions: (u32, u32),
+    dimensions: (usize, usize),
 }
 
 impl<'c, const N: usize> ImageData for OpaqueImageData<'c, N> {
@@ -38,8 +38,7 @@ impl<'c, const N: usize> ImageData for OpaqueImageData<'c, N> {
         &[255; N]
     }
 
-
-    fn dimensions(&self) -> &(u32, u32) {
+    fn dimensions(&self) -> &(usize, usize) {
         &self.dimensions
     }
 }
@@ -62,53 +61,64 @@ impl<'c, const N: usize> ImageData for TransparencyImageData<'c, N> {
         &self.trns
     }
 
-    fn dimensions(&self) -> &(u32, u32) {
+    fn dimensions(&self) -> &(usize, usize) {
         &self.opaque.dimensions
     }
 }
 
+fn from_fn((width, height): &(usize, usize), map: impl Fn(usize) -> u8) -> Vec<u8> {
+    (0usize..width * height).map(map).collect::<Vec<u8>>()
+}
+
 pub fn render_palette(palette: &Palette) -> impl ImageData {
+    let dimensions = (16 * 8, 16 * 8);
+    let data = from_fn(&dimensions, |idx| {
+        let palette_index = enlarged_palette_index(8, idx, &dimensions);
+        if palette_index < palette.len() {
+            palette_index as u8
+        } else {
+            0u8
+        }
+    });
     OpaqueImageData::<'_, 16384> {
         palette: palette.iter().collect(),
-        data: (0usize..16384)
-            .map(|idx| {
-                let row = idx.unbounded_shr(11);
-                let column = (idx % 128) / 16;
-                let palette_index = row * 16 + column;
-                if palette_index <= palette.len() {
-                    palette_index as u8
-                } else {
-                    0u8
-                }
-            })
-            .collect::<Vec<u8>>(),
-        dimensions: (16 * 8, 16 * 8),
+        data,
+        dimensions,
     }
 }
 
 pub fn render_tiles(palette: &Palette, tile_map: &TileMap) -> Vec<impl ImageData> {
-    tile_map.iter()
+    tile_map
+        .iter()
         .map(|tile| render_tile(palette, tile))
         .collect()
 }
 
+fn enlarged_palette_index(
+    factor: usize,
+    pixel_index: usize,
+    (width, height): &(usize, usize),
+) -> usize {
+    let row = pixel_index / (height * factor);
+    let column = (pixel_index % width) / factor;
+    row * factor + column
+}
+
 pub fn render_tile(palette: &Palette, tile: &Tile) -> impl ImageData {
+    let dimensions = (64, 64);
+    let data = from_fn(&dimensions, |idx| {
+        let tile_index = enlarged_palette_index(8, idx, &dimensions);
+        let palette_index = tile[tile_index] as usize;
+        if palette_index < palette.len() {
+            palette_index as u8
+        } else {
+            0u8
+        }
+    });
     OpaqueImageData::<'_, 4096> {
         palette: palette.iter().collect(),
-        data: (0usize..4096)
-            .map(|idx| {
-                let row = idx.unbounded_shr(9);
-                let column = (idx % 64) / 8;
-                let tile_index = row * 8 + column;
-                let palette_index = tile[tile_index] as usize;
-                if palette_index <= palette.len() {
-                    palette_index as u8
-                } else {
-                    0u8
-                }
-            })
-            .collect::<Vec<u8>>(),
-        dimensions: (64, 64),
+        data,
+        dimensions,
     }
 }
 
@@ -125,11 +135,7 @@ pub fn render_screen(
             let character = screen_data.get_character(x, y);
 
             let tile = character_data.get(character.tile_number()).unwrap();
-            let tile = flip_tile(
-                tile,
-                character.vertical_flip(),
-                character.horizontal_flip(),
-            );
+            let tile = flip_tile(tile, character.vertical_flip(), character.horizontal_flip());
 
             for tile_y in 0..8 {
                 for tile_x in 0..8 {
