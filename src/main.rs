@@ -26,6 +26,7 @@ fn main() {
         bg0_character_data,
         bg0_screen_data,
     )
+    .border(2)
     .to_png();
     fs::write(file, &*data).unwrap();
 
@@ -34,6 +35,7 @@ fn main() {
 
     let data = render_palette(project.background_palette())
         .scale(8)
+        .border(2)
         .to_png();
     fs::write(file, &*data).unwrap();
 
@@ -51,6 +53,7 @@ fn main() {
             .unwrap(),
     )
     .scale(8)
+    .border(2)
     .to_png();
     fs::write(file, &*data).unwrap();
 }

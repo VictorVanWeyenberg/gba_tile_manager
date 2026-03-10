@@ -17,7 +17,7 @@ pub fn render_palette(palette: &Palette) -> impl ImageData {
             0u8
         }
     });
-    OpaqueImageData::<'_, 256> {
+    OpaqueImageData::<'_> {
         palette: palette.iter().collect(),
         data,
         dimensions,
@@ -44,7 +44,7 @@ pub fn scaled_palette_index(
 pub fn render_tile(palette: &Palette, tile: &Tile) -> impl ImageData {
     let dimensions = (8, 8);
     let data = tile.to_vec();
-    OpaqueImageData::<'_, 64> {
+    OpaqueImageData::<'_> {
         palette: palette.iter().collect(),
         data,
         dimensions,
@@ -57,7 +57,6 @@ pub fn render_screen(
     screen_data: &Screen,
 ) -> impl ImageData {
     let mut data = vec![0u8; 240 * 160];
-    let mut trns = vec![0u8; 240 * 160];
 
     for y in 0..20 {
         for x in 0..30 {
@@ -75,21 +74,17 @@ pub fn render_screen(
                     let y_index = y * 8 + tile_y;
                     let data_index = y_index * 240 + x_index;
                     data[data_index] = palette_index;
-                    if palette_index != 0 {
-                        trns[data_index] = 255
-                    }
                 }
             }
         }
     }
 
     TransparencyImageData {
-        opaque: OpaqueImageData::<'_, 38400> {
+        opaque: OpaqueImageData::<'_> {
             palette: palette.iter().collect(),
             data,
             dimensions: (240, 160),
         },
-        trns,
     }
 }
 

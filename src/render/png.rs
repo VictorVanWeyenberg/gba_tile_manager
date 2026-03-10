@@ -22,13 +22,14 @@ pub fn image_data_to_png(image_data: impl ImageData) -> Vec<u8> {
         .chunks_exact(2)
         .map(|idx| (idx[0] << 4) | idx[1])
         .collect();
+    let trns = image_data.trns();
 
     let (width, height) = image_data.dimensions();
     let mut encoder = png::Encoder::new(&mut png, *width as u32, *height as u32);
     encoder.set_color(png::ColorType::Indexed);
     encoder.set_depth(png::BitDepth::Four);
     encoder.set_palette(palette);
-    encoder.set_trns(image_data.trns());
+    encoder.set_trns(trns);
     let mut writer = encoder.write_header().unwrap();
 
     writer.write_image_data(&data).unwrap();
