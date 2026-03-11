@@ -15,6 +15,10 @@ impl Color {
             _ => Ok(Color { r, g, b })
         }
     }
+    
+    pub fn black() -> Color {
+        Color::new(0, 0, 0).unwrap()
+    }
 
     pub fn as_png_rgb(&self) -> [u8; 3] {
         [self.r * 8, self.g * 8, self.b * 8]

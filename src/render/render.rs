@@ -1,8 +1,10 @@
 use crate::map::TileMap;
 use crate::palette::Palette;
-use crate::render::image::{ImageData, OpaqueImageData, TransparencyImageData};
+use crate::render::image::{BORDER_WIDTH, ImageData, OpaqueImageData, TransparencyImageData};
 use crate::screen::Screen;
 use crate::tile::Tile;
+
+pub const DIM_CURSOR: usize = 8;
 
 pub fn from_dimensions((width, height): &(usize, usize), map: impl Fn(usize) -> u8) -> Vec<u8> {
     (0usize..width * height).map(map).collect::<Vec<u8>>()
@@ -11,14 +13,10 @@ pub fn from_dimensions((width, height): &(usize, usize), map: impl Fn(usize) -> 
 pub fn render_palette(palette: &Palette) -> impl ImageData {
     let dimensions = (16, 16);
     let data = from_dimensions(&dimensions, |idx| {
-        if idx < palette.len() {
-            idx as u8
-        } else {
-            0u8
-        }
+        if idx < palette.len() { idx as u8 } else { 0u8 }
     });
     OpaqueImageData::<'_> {
-        palette: palette.iter().collect(),
+        palette,
         data,
         dimensions,
     }
@@ -45,7 +43,7 @@ pub fn render_tile(palette: &Palette, tile: &Tile) -> impl ImageData {
     let dimensions = (8, 8);
     let data = tile.to_vec();
     OpaqueImageData::<'_> {
-        palette: palette.iter().collect(),
+        palette,
         data,
         dimensions,
     }
@@ -81,7 +79,7 @@ pub fn render_screen(
 
     TransparencyImageData {
         opaque: OpaqueImageData::<'_> {
-            palette: palette.iter().collect(),
+            palette,
             data,
             dimensions: (240, 160),
         },
@@ -98,4 +96,42 @@ fn flip_tile(tile: &Tile, vflip: bool, hflip: bool) -> Tile {
     Tile::new(std::array::from_fn::<u8, 64, _>(|i| {
         tile[transform((i as u8 / 8, i as u8 % 8)) as usize]
     }))
+}
+
+fn render_background(palette: &Palette, (width, height): (usize, usize)) -> OpaqueImageData<'_> {
+    OpaqueImageData {
+        palette,
+        data: vec![0; width * height],
+        dimensions: (width, height),
+    }
+}
+
+pub fn render_cursor(
+    palette: &Palette,
+    (width, height): (usize, usize),
+    cursor_x: usize,
+    cursor_y: usize,
+) -> TransparencyImageData<'_> {
+    let mut data = vec![0; width * height];
+    let cursor_side = DIM_CURSOR + 2 * BORDER_WIDTH;
+    let row = cursor_y * DIM_CURSOR;
+    let col = cursor_x * DIM_CURSOR;
+    for idy in 0..cursor_side {
+        for idx in 0..cursor_side {
+            let is_border = idx < BORDER_WIDTH
+                || idx >= cursor_side - BORDER_WIDTH
+                || idy < BORDER_WIDTH
+                || idy >= cursor_side - BORDER_WIDTH;
+            if is_border {
+                data[(row + idy) * width + col + idx] = 1;
+            }
+        }
+    }
+    TransparencyImageData {
+        opaque: OpaqueImageData {
+            palette,
+            data,
+            dimensions: (width, height),
+        },
+    }
 }

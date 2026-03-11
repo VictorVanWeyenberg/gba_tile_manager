@@ -14,6 +14,7 @@ impl Deref for Png {
 pub fn image_data_to_png(image_data: impl ImageData) -> Vec<u8> {
     let mut png = vec![];
     let palette: Vec<u8> = image_data.palette()
+        .deref()
         .into_iter()
         .map(|color| color.as_png_rgb())
         .flatten()

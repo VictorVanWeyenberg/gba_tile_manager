@@ -7,6 +7,9 @@ use render::ImageData;
 use render::{render_palette, render_screen, render_tile};
 use std::fs;
 use std::path::PathBuf;
+use crate::color::Color;
+use crate::palette::Palette;
+use crate::render::render_cursor;
 
 fn main() {
     let mut directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -26,7 +29,7 @@ fn main() {
         bg0_character_data,
         bg0_screen_data,
     )
-    .border(2)
+    .border()
     .to_png();
     fs::write(file, &*data).unwrap();
 
@@ -35,7 +38,7 @@ fn main() {
 
     let data = render_palette(project.background_palette())
         .scale(8)
-        .border(2)
+        .border()
         .to_png();
     fs::write(file, &*data).unwrap();
 
@@ -53,7 +56,15 @@ fn main() {
             .unwrap(),
     )
     .scale(8)
-    .border(2)
+    .border()
     .to_png();
+    fs::write(file, &*data).unwrap();
+
+    let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    file.push("resources/cursor.png");
+
+    let cursor_palette = Palette::new(vec![Color::black(), Color::new(0, 31, 31).unwrap()]);
+    let data = render_cursor(&cursor_palette, (244, 164), 0, 0)
+        .to_png();
     fs::write(file, &*data).unwrap();
 }
