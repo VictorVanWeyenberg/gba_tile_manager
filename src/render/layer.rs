@@ -2,8 +2,8 @@ use crate::palette::Palette;
 use crate::project::VRamData;
 use crate::render::image::BORDER_WIDTH;
 use crate::render::png::Png;
-use crate::render::render::render_background;
-use crate::render::{render_cursor, render_screen, ImageData};
+use crate::render::render::{render_background, render_cursor, render_screen};
+use crate::render::ImageData;
 
 pub struct Layers<'c> {
     background: ImageData<'c>,
