@@ -1,3 +1,4 @@
+use std::default::Default;
 use crate::err::ProjectIOError;
 use crate::map::TileMap;
 use crate::palette::Palette;
@@ -7,7 +8,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize)]
 struct Structure {
@@ -34,6 +35,17 @@ pub struct Project {
 }
 
 impl Project {
+    pub fn new(name: impl ToString, path: PathBuf) -> Self {
+        Self {
+            name: name.to_string(),
+            path,
+            background_palette: Default::default(),
+            object_palette: Default::default(),
+            object_character_data: Default::default(),
+            screens: Default::default(),
+        }
+    }
+
     pub fn save(&self) -> Result<(), ProjectIOError> {
         let Project {
             name,

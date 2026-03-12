@@ -1,5 +1,6 @@
 mod domain;
 mod render;
+mod ui;
 
 use crate::color::Color;
 use crate::palette::Palette;
@@ -10,7 +11,18 @@ use render::{render_palette, render_tile};
 use std::fs;
 use std::path::PathBuf;
 
-fn main() {
+fn main() -> iced::Result {
+    iced::application(boot_fn, ui::update, ui::view).run()
+}
+
+fn boot_fn() -> ui::State {
+    let mut directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    directory.push("resources");
+    let project = Project::try_from(directory).unwrap();
+    ui::State::new(project)
+}
+
+fn render_images() {
     let mut directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     directory.push("resources");
     let project = Project::try_from(directory).unwrap();
