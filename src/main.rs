@@ -24,7 +24,6 @@ fn main() {
 
     let data = render_palette(project.background_palette())
         .scale(8)
-        .border()
         .to_png();
     fs::write(file, &*data).unwrap();
 
@@ -42,7 +41,6 @@ fn main() {
             .unwrap(),
     )
     .scale(8)
-    .border()
     .to_png();
     fs::write(file, &*data).unwrap();
 

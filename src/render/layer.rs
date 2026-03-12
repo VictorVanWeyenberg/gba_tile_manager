@@ -1,14 +1,14 @@
 use crate::palette::Palette;
 use crate::project::VRamData;
-use crate::render::image::{ImageData, OpaqueImageData, TransparencyImageData};
-use crate::render::render::render_background;
-use crate::render::{render_cursor, render_screen};
+use crate::render::image::BORDER_WIDTH;
 use crate::render::png::Png;
+use crate::render::render::render_background;
+use crate::render::{ImageData, render_cursor, render_screen};
 
 pub struct Layers<'c> {
-    background: OpaqueImageData<'c>,
-    layers: Vec<TransparencyImageData<'c>>,
-    cursor: Option<TransparencyImageData<'c>>,
+    background: ImageData<'c>,
+    layers: Vec<ImageData<'c>>,
+    cursor: Option<ImageData<'c>>,
 }
 
 impl<'c> Layers<'c> {
@@ -39,6 +39,16 @@ impl<'c> Layers<'c> {
         }
     }
 
+    pub fn new_background(
+        background: ImageData<'c>,
+    ) -> Self {
+        Self {
+            background,
+            layers: vec![],
+            cursor: None,
+        }
+    }
+
     pub fn set_cursor(self, cursor_palette: &'c Palette, cursor_x: usize, cursor_y: usize) -> Self {
         let Self {
             background,
@@ -46,7 +56,10 @@ impl<'c> Layers<'c> {
             cursor,
         } = self;
         let (background, layers) = match cursor {
-            None => (background.border(), layers.into_iter().map(|layer| layer.border()).collect()),
+            None => (
+                border(background),
+                layers.into_iter().map(|layer| border(layer)).collect(),
+            ),
             Some(_) => (background, layers),
         };
 
@@ -74,5 +87,32 @@ impl<'c> Layers<'c> {
             None => {}
         }
         layers
+    }
+}
+
+fn border(image_data: ImageData) -> ImageData {
+    let ImageData {
+        palette,
+        data,
+        dimensions: (width, height),
+        transparent,
+    } = image_data;
+    let new_width = width + 2 * BORDER_WIDTH;
+    let new_height = height + 2 * BORDER_WIDTH;
+    let mut new_data = vec![0u8; new_width * new_height];
+
+    for y in 0..height {
+        let src_row = y * width;
+        let dst_row = (y + BORDER_WIDTH) * new_width;
+        new_data[(dst_row + BORDER_WIDTH)..(dst_row + BORDER_WIDTH + width)]
+            .copy_from_slice(&data[src_row..(src_row + width)]);
+    }
+
+    let new_dimensions = (new_width, new_height);
+    ImageData {
+        palette,
+        data: new_data,
+        dimensions: new_dimensions,
+        transparent,
     }
 }
