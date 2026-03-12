@@ -49,11 +49,11 @@ pub fn render_tile(palette: &Palette, tile: &Tile) -> impl ImageData {
     }
 }
 
-pub fn render_screen(
-    palette: &Palette,
+pub fn render_screen<'c>(
+    palette: &'c Palette,
     character_data: &TileMap,
     screen_data: &Screen,
-) -> impl ImageData {
+) -> TransparencyImageData<'c> {
     let mut data = vec![0u8; 240 * 160];
 
     for y in 0..20 {
@@ -98,7 +98,7 @@ fn flip_tile(tile: &Tile, vflip: bool, hflip: bool) -> Tile {
     }))
 }
 
-fn render_background(palette: &Palette, (width, height): (usize, usize)) -> OpaqueImageData<'_> {
+pub fn render_background(palette: &Palette, (width, height): (usize, usize)) -> OpaqueImageData<'_> {
     OpaqueImageData {
         palette,
         data: vec![0; width * height],

@@ -9,7 +9,7 @@ use std::fs;
 use std::path::PathBuf;
 use crate::color::Color;
 use crate::palette::Palette;
-use crate::render::render_cursor;
+use crate::render::{render_cursor, Layers};
 
 fn main() {
     let mut directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -18,20 +18,6 @@ fn main() {
 
     let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     file.push("resources/empty_art.png");
-
-    let VRamData {
-        bg0_character_data,
-        bg0_screen_data,
-        ..
-    } = project.screens().get("empty_art").unwrap();
-    let data = render_screen(
-        project.background_palette(),
-        bg0_character_data,
-        bg0_screen_data,
-    )
-    .border()
-    .to_png();
-    fs::write(file, &*data).unwrap();
 
     let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     file.push("resources/background_palette.png");
@@ -60,11 +46,15 @@ fn main() {
     .to_png();
     fs::write(file, &*data).unwrap();
 
-    let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    file.push("resources/cursor.png");
-
     let cursor_palette = Palette::new(vec![Color::black(), Color::new(0, 31, 31).unwrap()]);
-    let data = render_cursor(&cursor_palette, (244, 164), 0, 0)
+
+    let layer_names = vec!["empty_art_background", "empty_art_bg0", "empty_art_bg1", "empty_art_cursor"];
+    let layers = Layers::new_screen(project.background_palette(), project.screens().get("empty_art").unwrap())
+        .set_cursor(&cursor_palette, 0, 0)
         .to_png();
-    fs::write(file, &*data).unwrap();
+    for (name, layer) in layer_names.into_iter().zip(layers) {
+        let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        file.push(format!("resources/{}.png", name));
+        fs::write(file, &*layer).unwrap();
+    }
 }

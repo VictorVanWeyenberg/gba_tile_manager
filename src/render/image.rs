@@ -10,7 +10,7 @@ pub trait ImageData {
     fn trns(&self) -> Vec<u8>;
     fn dimensions(&self) -> &(usize, usize);
     fn scale(self, factor: usize) -> Self;
-    fn to_png(self) -> Png;
+    fn to_png(&self) -> Png;
     fn border(self) -> Self;
 }
 
@@ -63,7 +63,7 @@ impl<'c> ImageData for OpaqueImageData<'c> {
         }
     }
 
-    fn to_png(self) -> Png {
+    fn to_png(&self) -> Png {
         Png(image_data_to_png(self))
     }
 
@@ -111,7 +111,7 @@ impl<'c> ImageData for TransparencyImageData<'c> {
         Self { opaque }
     }
 
-    fn to_png(self) -> Png {
+    fn to_png(&self) -> Png {
         Png(image_data_to_png(self))
     }
 
