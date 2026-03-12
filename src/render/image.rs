@@ -29,7 +29,6 @@ impl<'c> ImageData<'c> {
     }
 
     pub fn trns(&self) -> Vec<u8> {
-        let (w, h) = &self.dimensions;
         let mut trns = vec![255; self.palette.len()];
         if self.transparent {
             trns[0] = 0;

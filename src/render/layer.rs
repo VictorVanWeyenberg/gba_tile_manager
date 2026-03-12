@@ -3,23 +3,15 @@ use crate::project::VRamData;
 use crate::render::image::BORDER_WIDTH;
 use crate::render::png::Png;
 use crate::render::render::render_background;
-use crate::render::{ImageData, render_cursor, render_screen};
+use crate::render::{render_cursor, render_screen, ImageData};
 
 pub struct Layers<'c> {
     background: ImageData<'c>,
-    layers: Vec<ImageData<'c>>,
+    layers: Option<(ImageData<'c>, ImageData<'c>)>,
     cursor: Option<ImageData<'c>>,
 }
 
 impl<'c> Layers<'c> {
-    pub fn new(palette: &'c Palette, dimensions: (usize, usize)) -> Self {
-        Self {
-            background: render_background(palette, dimensions),
-            layers: vec![],
-            cursor: None,
-        }
-    }
-
     pub fn new_screen(
         palette: &'c Palette,
         VRamData {
@@ -31,10 +23,10 @@ impl<'c> Layers<'c> {
     ) -> Self {
         Self {
             background: render_background(palette, (240, 160)),
-            layers: vec![
+            layers: Some((
                 render_screen(palette, bg0_character_data, bg0_screen_data),
                 render_screen(palette, bg1_character_data, bg1_screen_data),
-            ],
+            )),
             cursor: None,
         }
     }
@@ -44,7 +36,7 @@ impl<'c> Layers<'c> {
     ) -> Self {
         Self {
             background,
-            layers: vec![],
+            layers: None,
             cursor: None,
         }
     }
@@ -58,7 +50,7 @@ impl<'c> Layers<'c> {
         let (background, layers) = match cursor {
             None => (
                 border(background),
-                layers.into_iter().map(|layer| border(layer)).collect(),
+                layers.map(|(bg0, bg1)| (border(bg0), border(bg1)))
             ),
             Some(_) => (background, layers),
         };
@@ -76,17 +68,36 @@ impl<'c> Layers<'c> {
         }
     }
 
-    pub fn to_png(&self) -> Vec<Png> {
+    pub fn to_pngs(&self) -> Vec<Png> {
         let mut layers = vec![];
         layers.push(self.background.to_png());
-        for layer in &self.layers {
-            layers.push(layer.to_png());
+        if let Some((bg0, bg1)) = &self.layers {
+            layers.push(bg0.to_png());
+            layers.push(bg1.to_png())
         }
-        match &self.cursor {
-            Some(cursor) => layers.push(cursor.to_png()),
-            None => {}
+        if let Some(cursor) = &self.cursor {
+            layers.push(cursor.to_png())
         }
         layers
+    }
+
+    pub fn to_png(&self) -> Png {
+        let palette = self.background.palette;
+        let (width, height) = self.background.dimensions;
+        let data = if let Some((bg0, bg1)) = &self.layers {
+            bg1.data().iter()
+                .zip(bg0.data.iter())
+                .map(|(&b1, &b0)| if b0 != 0 { b0 } else { b1 })
+                .collect()
+        } else {
+            vec![0; width * height]
+        };
+        ImageData {
+            palette,
+            data,
+            dimensions: (width, height),
+            transparent: false,
+        }.to_png()
     }
 }
 

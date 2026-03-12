@@ -1,15 +1,14 @@
 mod domain;
 mod render;
 
-use crate::project::{Project, VRamData};
-pub use domain::*;
-use render::ImageData;
-use render::{render_palette, render_screen, render_tile};
-use std::fs;
-use std::path::PathBuf;
 use crate::color::Color;
 use crate::palette::Palette;
-use crate::render::{render_cursor, Layers};
+use crate::project::Project;
+use crate::render::Layers;
+pub use domain::*;
+use render::{render_palette, render_tile};
+use std::fs;
+use std::path::PathBuf;
 
 fn main() {
     let mut directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -48,11 +47,14 @@ fn main() {
 
     let layer_names = vec!["empty_art_background", "empty_art_bg0", "empty_art_bg1", "empty_art_cursor"];
     let layers = Layers::new_screen(project.background_palette(), project.screens().get("empty_art").unwrap())
-        .set_cursor(&cursor_palette, 0, 0)
-        .to_png();
-    for (name, layer) in layer_names.into_iter().zip(layers) {
+        .set_cursor(&cursor_palette, 0, 0);
+    for (name, layer) in layer_names.into_iter().zip(layers.to_pngs()) {
         let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         file.push(format!("resources/{}.png", name));
         fs::write(file, &*layer).unwrap();
     }
+
+    let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    file.push("resources/empty_art.png");
+    fs::write(file, &*layers.to_png()).unwrap();
 }

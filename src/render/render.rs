@@ -11,7 +11,7 @@ pub fn from_dimensions((width, height): &(usize, usize), map: impl Fn(usize) -> 
     (0usize..width * height).map(map).collect::<Vec<u8>>()
 }
 
-pub fn render_palette(palette: &Palette) -> ImageData {
+pub fn render_palette(palette: &Palette) -> ImageData<'_> {
     let dimensions = (16, 16);
     let data = from_dimensions(&dimensions, |idx| {
         if idx < palette.len() { idx as u8 } else { 0u8 }
