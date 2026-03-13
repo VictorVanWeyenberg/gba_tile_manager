@@ -1,14 +1,14 @@
-use std::default::Default;
 use crate::err::ProjectIOError;
 use crate::map::TileMap;
 use crate::palette::Palette;
 use crate::screen::Screen;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::default::Default;
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize)]
 struct Structure {
@@ -253,8 +253,8 @@ fn read_screen_data(path: &PathBuf, file_name: &str) -> Result<Screen, ProjectIO
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
     use crate::project::{Project, VRamData};
+    use std::fs;
     use std::path::PathBuf;
     use tempdir::TempDir;
 

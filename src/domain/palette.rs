@@ -2,7 +2,7 @@ use crate::color::Color;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Palette {
     colors: Vec<Color>,
 }

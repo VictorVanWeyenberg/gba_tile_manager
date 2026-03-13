@@ -41,7 +41,7 @@ impl<'c> Layers<'c> {
         }
     }
 
-    pub fn set_cursor(self, cursor_palette: &'c Palette, cursor_x: usize, cursor_y: usize) -> Self {
+    pub fn set_cursor(self, cursor_x: usize, cursor_y: usize) -> Self {
         let Self {
             background,
             layers,
@@ -56,7 +56,6 @@ impl<'c> Layers<'c> {
         };
 
         let cursor = Some(render_cursor(
-            cursor_palette,
             background.dimensions,
             cursor_x,
             cursor_y,
@@ -85,12 +84,15 @@ impl<'c> Layers<'c> {
         let palette = self.background.palette;
         let (width, height) = self.background.dimensions;
         let data = if let Some((bg0, bg1)) = &self.layers {
+            let mut data = self.background.data.clone();
             bg1.data().iter()
                 .zip(bg0.data.iter())
                 .map(|(&b1, &b0)| if b0 != 0 { b0 } else { b1 })
-                .collect()
+                .enumerate()
+                .for_each(|(idx, pal)| data[idx] = pal);
+            data
         } else {
-            vec![0; width * height]
+            self.background.data.clone()
         };
         ImageData {
             palette,

@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::ops::{Shl, Shr};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Color {
     r: u8,
     g: u8,

@@ -3,7 +3,7 @@ use crate::render::png::{image_data_to_png, Png};
 use crate::render::render::{from_dimensions, scaled_palette_index};
 use crate::render::Layers;
 
-pub const BORDER_WIDTH: usize = 2;
+pub const BORDER_WIDTH: usize = 1;
 
 /// For a 3x2 image, image data will have data [1, 2, 3, 4, 5, 6] that's supposed to be rendered as
 /// follows.
@@ -66,10 +66,9 @@ impl<'c> ImageData<'c> {
 
     pub fn with_cursor(
         self,
-        cursor_palette: &'static Palette,
         cursor_x: usize,
         cursor_y: usize,
     ) -> Layers<'c> {
-        Layers::<'c>::new_background(self).set_cursor(cursor_palette, cursor_x, cursor_y)
+        Layers::<'c>::new_background(self).set_cursor(cursor_x, cursor_y)
     }
 }

@@ -55,11 +55,9 @@ fn render_images() {
     .to_png();
     fs::write(file, &*data).unwrap();
 
-    let cursor_palette = Palette::new(vec![Color::black(), Color::new(0, 31, 31).unwrap()]);
-
     let layer_names = vec!["empty_art_background", "empty_art_bg0", "empty_art_bg1", "empty_art_cursor"];
     let layers = Layers::new_screen(project.background_palette(), project.screens().get("empty_art").unwrap())
-        .set_cursor(&cursor_palette, 0, 0);
+        .set_cursor(0, 0);
     for (name, layer) in layer_names.into_iter().zip(layers.to_pngs()) {
         let mut file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         file.push(format!("resources/{}.png", name));
