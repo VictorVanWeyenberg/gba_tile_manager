@@ -1,20 +1,16 @@
-use lazy_static::lazy_static;
 use crate::color::Color;
 use crate::map::TileMap;
 use crate::palette::Palette;
 use crate::render::ImageData;
-use crate::render::image::BORDER_WIDTH;
 use crate::screen::Screen;
 use crate::tile::Tile;
+use lazy_static::lazy_static;
 
 pub const DIM_CURSOR: usize = 8;
-lazy_static!{
-    static ref CURSOR_PALETTE: Palette = Palette::new(vec![
-        Color::black(),
-        Color::new(0, 31, 31).unwrap(),
-    ]);
+lazy_static! {
+    static ref CURSOR_PALETTE: Palette =
+        Palette::new(vec![Color::black(), Color::new(0, 31, 31).unwrap(),]);
 }
-
 
 pub fn from_dimensions((width, height): &(usize, usize), map: impl Fn(usize) -> u8) -> Vec<u8> {
     (0usize..width * height).map(map).collect::<Vec<u8>>()
@@ -123,16 +119,14 @@ pub fn render_cursor<'c>(
     cursor_x: usize,
     cursor_y: usize,
 ) -> ImageData<'c> {
+    let width = width * DIM_CURSOR;
+    let height = height * DIM_CURSOR;
     let mut data = vec![0; width * height];
-    let cursor_side = DIM_CURSOR + 2 * BORDER_WIDTH;
     let row = cursor_y * DIM_CURSOR;
     let col = cursor_x * DIM_CURSOR;
-    for idy in 0..cursor_side {
-        for idx in 0..cursor_side {
-            let is_border = idx < BORDER_WIDTH
-                || idx >= cursor_side - BORDER_WIDTH
-                || idy < BORDER_WIDTH
-                || idy >= cursor_side - BORDER_WIDTH;
+    for idy in 0..DIM_CURSOR {
+        for idx in 0..DIM_CURSOR {
+            let is_border = idy == 0 || idx == 0 || idx == DIM_CURSOR - 1 || idy == DIM_CURSOR - 1;
             if is_border {
                 data[(row + idy) * width + col + idx] = 1;
             }

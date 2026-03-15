@@ -23,6 +23,18 @@ impl Color {
     pub fn as_png_rgb(&self) -> [u8; 3] {
         [self.r * 8, self.g * 8, self.b * 8]
     }
+
+    pub fn as_rgba(&self, transparent: bool) -> [u8; 4] {
+        let transparent = if transparent &&
+            self.r == 0 &&
+            self.g == 0 &&
+            self.b == 0 {
+            0
+        } else {
+            255
+        };
+        [self.r * 8, self.g * 8, self.b * 8, transparent]
+    }
 }
 
 impl Into<[u8; 2]> for &Color {
