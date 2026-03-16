@@ -1,10 +1,10 @@
 use crate::project::Project;
-use crate::render::{render_cursor, render_palette};
-use iced::advanced::image::FilterMethod;
-use iced::widget::{Stack, Text, image};
-use iced::{Element, Length, Point};
+use crate::ui::palette_editor::palette_editor;
+use iced::widget::Text;
+use iced::{Element, Point};
 use iced_aw::{TabLabel, Tabs};
-use sweeten::mouse_area;
+
+mod palette_editor;
 
 pub struct State {
     project: Project,
@@ -22,7 +22,7 @@ pub enum PaletteType {
 #[derive(Default)]
 pub struct PaletteState {
     palette_type: PaletteType,
-    cursor: (usize, usize),
+    cursor: Point<usize>,
 }
 
 impl State {
@@ -38,7 +38,7 @@ impl State {
 #[derive(Clone)]
 pub enum Message {
     TabSelected(TabId),
-    PaletteClicked(Point),
+    PaletteClicked(Point<usize>),
 }
 
 #[derive(Clone, Default, Eq, PartialEq)]
@@ -71,33 +71,17 @@ pub fn view(state: &State) -> Element<'_, Message> {
 }
 
 fn palettes_view<'a>(
-    project: &Project,
+    project: &'a Project,
     PaletteState {
         palette_type,
-        cursor: (x, y),
+        cursor,
     }: &'a PaletteState,
 ) -> Element<'a, Message> {
     let palette = match palette_type {
         PaletteType::Background => project.background_palette(),
         PaletteType::Object => project.object_palette(),
     };
-    let palette = render_palette(palette).to_handle();
-    let background: Element<'_, Message> = image(palette)
-        .filter_method(FilterMethod::Nearest)
-        .expand(true)
-        .into();
-
-    let cursor = render_cursor((16, 16), *x, *y).to_handle();
-    let cursor = image(cursor)
-        .filter_method(FilterMethod::Nearest)
-        .expand(true)
-        .into();
-
-    let stack = Stack::with_children(vec![background, cursor])
-        .width(Length::Fill)
-        .height(Length::Fill);
-
-    mouse_area(stack).on_press(Message::PaletteClicked).into()
+    palette_editor::<'a, '_, Message>(palette, *cursor, &Message::PaletteClicked)
 }
 
 fn tiles_view(_: &State) -> Element<'_, Message> {
@@ -111,6 +95,6 @@ fn screens_view(_: &State) -> Element<'_, Message> {
 pub fn update(state: &mut State, message: Message) {
     match message {
         Message::TabSelected(tab_id) => state.selected_tab = tab_id,
-        Message::PaletteClicked(_) => state.palette_state.cursor = (1, 1),
+        Message::PaletteClicked(point) => state.palette_state.cursor = point,
     }
 }
