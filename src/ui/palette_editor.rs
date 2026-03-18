@@ -3,14 +3,14 @@ use crate::render::{render_cursor, render_palette};
 use iced::advanced::image::FilterMethod;
 use iced::mouse::Cursor;
 use iced::widget::canvas::{Frame, Geometry, Image, Program};
-use iced::widget::{responsive, Action, Canvas};
-use iced::{Element, Event, Point, Rectangle, Renderer, Size, Theme};
+use iced::widget::{Action, Canvas, responsive};
+use iced::{Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
 
 struct PaletteEditor<'a, 'm, Message> {
     palette: &'a Palette,
     location: Point<usize>,
     message: &'m dyn Fn(Point<usize>) -> Message,
-    origin: Rectangle
+    origin: Rectangle,
 }
 
 impl<'a, 'm, Message> PaletteEditor<'a, 'm, Message> {
@@ -24,7 +24,7 @@ impl<'a, 'm, Message> PaletteEditor<'a, 'm, Message> {
             palette,
             location,
             message,
-            origin
+            origin,
         }
     }
 }

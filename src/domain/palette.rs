@@ -11,6 +11,14 @@ impl Palette {
     pub fn new(colors: Vec<Color>) -> Self {
         Self { colors }
     }
+
+    pub fn set_color(&mut self, index: usize, color: Color) {
+        while index >= self.colors.len() {
+            self.colors.push(Color::black())
+        }
+
+        self.colors[index] = color
+    }
 }
 
 impl Deref for Palette {
