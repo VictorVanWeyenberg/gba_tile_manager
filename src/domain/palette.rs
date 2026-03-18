@@ -1,6 +1,8 @@
 use crate::color::Color;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
+use iced::widget::image::Handle;
+use crate::render::{from_dimensions, ImageData};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Palette {
@@ -18,6 +20,21 @@ impl Palette {
         }
 
         self.colors[index] = color
+    }
+}
+
+impl Into<Handle> for &Palette {
+    fn into(self) -> Handle {
+        let dimensions = (16, 16);
+        let data = from_dimensions(&dimensions, |idx| {
+            if idx < self.len() { idx as u8 } else { 0u8 }
+        });
+        ImageData::<'_> {
+            palette: self,
+            data,
+            dimensions,
+            transparent: false,
+        }.to_handle()
     }
 }
 

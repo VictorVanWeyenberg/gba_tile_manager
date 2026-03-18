@@ -1,13 +1,13 @@
 use crate::color::Color;
 use crate::palette::Palette;
 use crate::project::Project;
-use crate::ui::palette_editor::palette_editor;
+use crate::ui::editor::palette_editor;
 use crate::ui::palette_input::palette_input;
 use iced::widget::{row, Text};
 use iced::{Element, Point};
 use iced_aw::{TabLabel, Tabs};
 
-mod palette_editor;
+mod editor;
 mod palette_input;
 
 pub struct State {

@@ -1,21 +1,28 @@
 use crate::palette::Palette;
-use crate::render::{render_cursor, render_palette};
+use crate::render::render_cursor;
 use iced::advanced::image::FilterMethod;
 use iced::mouse::Cursor;
 use iced::widget::canvas::{Frame, Geometry, Image, Program};
+use iced::widget::image::Handle;
 use iced::widget::{Action, Canvas, responsive};
-use iced::{Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
+use iced::{Element, Event, Point, Rectangle, Renderer, Size, Theme};
 
-struct PaletteEditor<'a, 'm, Message> {
-    palette: &'a Palette,
+struct PaletteEditor<'a, 'm, Message, T>
+where
+    for<'t> &'t T: Into<Handle>,
+{
+    palette: &'a T,
     location: Point<usize>,
     message: &'m dyn Fn(Point<usize>) -> Message,
     origin: Rectangle,
 }
 
-impl<'a, 'm, Message> PaletteEditor<'a, 'm, Message> {
+impl<'a, 'm, Message, T> PaletteEditor<'a, 'm, Message, T>
+where
+    for<'t> &'t T: Into<Handle>,
+{
     pub fn new(
-        palette: &'a Palette,
+        palette: &'a T,
         location: Point<usize>,
         message: &'m impl Fn(Point<usize>) -> Message,
         origin: Rectangle,
@@ -29,7 +36,10 @@ impl<'a, 'm, Message> PaletteEditor<'a, 'm, Message> {
     }
 }
 
-impl<'a, 'm, Message> Program<Message> for PaletteEditor<'a, 'm, Message> {
+impl<'a, 'm, Message, T> Program<Message> for PaletteEditor<'a, 'm, Message, T>
+where
+    for<'t> &'t T: Into<Handle>,
+{
     type State = ();
 
     fn update(
@@ -64,7 +74,7 @@ impl<'a, 'm, Message> Program<Message> for PaletteEditor<'a, 'm, Message> {
     ) -> Vec<Geometry<Renderer>> {
         let mut frame = Frame::new(renderer, bounds.size());
 
-        let palette = render_palette(self.palette).to_handle();
+        let palette: Handle = self.palette.into();
         let indicator = render_cursor((16, 16), self.location.x, self.location.y).to_handle();
 
         frame.draw_image(
