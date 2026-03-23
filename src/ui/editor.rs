@@ -1,45 +1,37 @@
 use crate::palette::Palette;
 use crate::render::render_cursor;
+use crate::tile::Tile;
 use iced::advanced::image::FilterMethod;
 use iced::mouse::Cursor;
 use iced::widget::canvas::{Frame, Geometry, Image, Program};
 use iced::widget::image::Handle;
-use iced::widget::{Action, Canvas, responsive};
-use iced::{Element, Event, Point, Rectangle, Renderer, Size, Theme};
+use iced::widget::{responsive, Action, Canvas};
+use iced::{Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
 
-struct PaletteEditor<'a, 'm, Message, T>
-where
-    for<'t> &'t T: Into<Handle>,
-{
-    palette: &'a T,
+struct PaletteEditor<M> {
+    handle: Handle,
     location: Point<usize>,
-    message: &'m dyn Fn(Point<usize>) -> Message,
+    message: Box<dyn Fn(Point<usize>) -> M>,
     origin: Rectangle,
 }
 
-impl<'a, 'm, Message, T> PaletteEditor<'a, 'm, Message, T>
-where
-    for<'t> &'t T: Into<Handle>,
-{
+impl<M> PaletteEditor<M> {
     pub fn new(
-        palette: &'a T,
+        handle: Handle,
         location: Point<usize>,
-        message: &'m impl Fn(Point<usize>) -> Message,
+        message: impl Fn(Point<usize>) -> M + 'static,
         origin: Rectangle,
     ) -> Self {
         Self {
-            palette,
+            handle,
             location,
-            message,
-            origin,
+            message: Box::new(message),
+            origin
         }
     }
 }
 
-impl<'a, 'm, Message, T> Program<Message> for PaletteEditor<'a, 'm, Message, T>
-where
-    for<'t> &'t T: Into<Handle>,
-{
+impl<M> Program<M> for PaletteEditor<M> {
     type State = ();
 
     fn update(
@@ -48,7 +40,7 @@ where
         event: &Event,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> Option<Action<Message>> {
+    ) -> Option<Action<M>> {
         if let Event::Mouse(iced::advanced::mouse::Event::ButtonPressed(
             iced::advanced::mouse::Button::Left,
         )) = event
@@ -74,12 +66,11 @@ where
     ) -> Vec<Geometry<Renderer>> {
         let mut frame = Frame::new(renderer, bounds.size());
 
-        let palette: Handle = self.palette.into();
         let indicator = render_cursor((16, 16), self.location.x, self.location.y).to_handle();
 
         frame.draw_image(
             self.origin,
-            Image::new(palette).filter_method(FilterMethod::Nearest),
+            Image::new(self.handle.clone()).filter_method(FilterMethod::Nearest),
         );
         frame.draw_image(
             self.origin,
@@ -90,21 +81,57 @@ where
     }
 }
 
-pub fn palette_editor<'a, 'm, Message: 'm>(
+pub fn palette_editor<'a, M>(
     palette: &'a Palette,
     location: Point<usize>,
-    message: &'m impl Fn(Point<usize>) -> Message,
-) -> Element<'a, Message>
+    message: impl Fn(Point<usize>) -> M + Copy + 'static,
+) -> Element<'a, M>
 where
-    'm: 'a,
+    M: 'static,
 {
+
     responsive(move |size| {
-        let side = size.width.min(size.height);
-        let origin = Rectangle::new(Point::ORIGIN, Size::new(side, side));
-        Canvas::new(PaletteEditor::new(palette, location, message, origin))
-            .width(side)
-            .height(side)
+        let size = size.width.min(size.height);
+        let origin = Rectangle::new(Point::ORIGIN, Size::new(size, size));
+        Canvas::new(PaletteEditor::new(
+            palette.render(),
+            location,
+            message,
+            origin,
+        ))
+            .width(size)
+            .height(size)
             .into()
     })
-    .into()
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
+}
+
+pub fn tile_editor<'a, M>(
+    palette: &'a Palette,
+    tile: &'a Tile,
+    location: Point<usize>,
+    message: impl Fn(Point<usize>) -> M + Copy + 'static,
+) -> Element<'a, M>
+where
+    M: 'static,
+{
+
+    responsive(move |size| {
+        let size = size.width.min(size.height);
+        let origin = Rectangle::new(Point::ORIGIN, Size::new(size, size));
+        Canvas::new(PaletteEditor::new(
+            tile.render_with(palette),
+            location,
+            message,
+            origin,
+        ))
+            .width(size)
+            .height(size)
+            .into()
+    })
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
 }

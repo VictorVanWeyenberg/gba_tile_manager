@@ -1,4 +1,7 @@
 use std::ops::{Deref, DerefMut, Shl, Shr};
+use iced::advanced::image::Handle;
+use crate::palette::Palette;
+use crate::render::{render_tile};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Tile {
@@ -8,6 +11,10 @@ pub struct Tile {
 impl Tile {
     pub fn new(palette_indexes: [u8; 64]) -> Self {
         Self { palette_indexes }
+    }
+
+    pub fn render_with<'a>(&'a self, palette: &'a Palette) -> Handle {
+        render_tile(palette, self).to_handle()
     }
 }
 

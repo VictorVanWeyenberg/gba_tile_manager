@@ -1,9 +1,9 @@
 use crate::color::Color;
 use crate::palette::Palette;
 use crate::project::Project;
-use crate::ui::editor::palette_editor;
+use crate::ui::editor::{palette_editor, tile_editor};
 use crate::ui::palette_input::palette_input;
-use iced::widget::{row, Text};
+use iced::widget::{Text, row};
 use iced::{Element, Point};
 use iced_aw::{TabLabel, Tabs};
 
@@ -14,6 +14,7 @@ pub struct State {
     project: Project,
     selected_tab: TabId,
     palette_state: PaletteState,
+    tiles_state: TilesState,
 }
 
 #[derive(Default)]
@@ -26,7 +27,25 @@ pub enum PaletteType {
 #[derive(Default)]
 pub struct PaletteState {
     palette_type: PaletteType,
-    cursor: Point<usize>,
+    location: Point<usize>,
+}
+
+pub struct TilesState {
+    palette_type: PaletteType,
+    location: Point<usize>,
+    character_map: String,
+    tile_index: usize,
+}
+
+impl Default for TilesState {
+    fn default() -> Self {
+        Self {
+            palette_type: Default::default(),
+            location: Default::default(),
+            character_map: "empty_art".to_string(),
+            tile_index: 23,
+        }
+    }
 }
 
 impl State {
@@ -35,6 +54,7 @@ impl State {
             project,
             selected_tab: Default::default(),
             palette_state: Default::default(),
+            tiles_state: Default::default(),
         }
     }
 }
@@ -44,6 +64,7 @@ pub enum Message {
     TabSelected(TabId),
     PaletteClicked(Point<usize>),
     PaletteChanged(Color),
+    TileClicked(Point<usize>),
 }
 
 #[derive(Clone, Default, Eq, PartialEq)]
@@ -64,7 +85,7 @@ pub fn view(state: &State) -> Element<'_, Message> {
         .push(
             TabId::Tiles,
             TabLabel::Text("Tiles".to_string()),
-            tiles_view(state),
+            tiles_view(&state.project, &state.tiles_state),
         )
         .push(
             TabId::Screens,
@@ -79,25 +100,45 @@ fn palettes_view<'a>(
     project: &'a Project,
     PaletteState {
         palette_type,
-        cursor,
+        location: cursor,
     }: &'a PaletteState,
 ) -> Element<'a, Message> {
-    let palette = match palette_type {
-        PaletteType::Background => project.background_palette(),
-        PaletteType::Object => project.object_palette(),
-    };
+    let palette = get_selected_palette(project, palette_type);
     let selected_color = get_palette_color_at_point(palette, cursor);
     row! {
         palette_input(selected_color),
-        palette_editor::<'a, '_, Message>(palette, *cursor, &Message::PaletteClicked)
+        palette_editor(palette, *cursor, Message::PaletteClicked)
     }
     .spacing(10)
     .padding(10)
     .into()
 }
 
-fn tiles_view(_: &State) -> Element<'_, Message> {
-    Text::new("Tiles").into()
+fn get_selected_palette<'p>(project: &'p Project, palette_type: &PaletteType) -> &'p Palette {
+    match palette_type {
+        PaletteType::Background => project.background_palette(),
+        PaletteType::Object => project.object_palette(),
+    }
+}
+
+fn tiles_view<'a>(
+    project: &'a Project,
+    TilesState {
+        palette_type,
+        location: cursor,
+        character_map,
+        tile_index,
+    }: &'a TilesState,
+) -> Element<'a, Message> {
+    let tile = project
+        .screens()
+        .get(character_map)
+        .unwrap()
+        .bg1_character_data
+        .get(*tile_index)
+        .unwrap();
+    let palette = get_selected_palette(project, palette_type);
+    tile_editor(palette, tile, *cursor, Message::TileClicked)
 }
 
 fn screens_view(_: &State) -> Element<'_, Message> {
@@ -108,9 +149,10 @@ pub fn update(state: &mut State, message: Message) {
     match message {
         Message::TabSelected(tab_id) => state.selected_tab = tab_id,
         Message::PaletteClicked(point) => {
-            state.palette_state.cursor = point;
-        },
+            state.palette_state.location = point;
+        }
         Message::PaletteChanged(color) => on_palette_changed(state, color),
+        Message::TileClicked(point) => state.tiles_state.location = point,
     }
 }
 
@@ -121,7 +163,7 @@ fn get_palette_color_at_point<'a>(palette: &'a Palette, point: &Point<usize>) ->
 fn on_palette_changed(state: &mut State, color: Color) {
     let palette_type = &state.palette_state.palette_type;
     let project = &mut state.project;
-    let point = &state.palette_state.cursor;
+    let point = &state.palette_state.location;
     let palette = match palette_type {
         PaletteType::Background => project.background_palette_mut(),
         PaletteType::Object => project.object_palette_mut(),

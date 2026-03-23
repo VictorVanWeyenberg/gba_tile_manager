@@ -1,3 +1,4 @@
+use iced::advanced::image::Handle;
 use crate::color::Color;
 use crate::map::TileMap;
 use crate::palette::Palette;

@@ -1,10 +1,10 @@
 use crate::color::Color;
+use crate::render::{from_dimensions, ImageData};
+use iced::widget::image::Handle;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
-use iced::widget::image::Handle;
-use crate::render::{from_dimensions, ImageData};
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Default, Eq, PartialEq)]
 pub struct Palette {
     colors: Vec<Color>,
 }
@@ -21,10 +21,8 @@ impl Palette {
 
         self.colors[index] = color
     }
-}
 
-impl Into<Handle> for &Palette {
-    fn into(self) -> Handle {
+    pub fn render(&self) -> Handle {
         let dimensions = (16, 16);
         let data = from_dimensions(&dimensions, |idx| {
             if idx < self.len() { idx as u8 } else { 0u8 }
@@ -77,9 +75,9 @@ impl Into<Vec<u8>> for &Palette {
 
 #[cfg(test)]
 mod tests {
-    use std::io::BufReader;
     use crate::color::Color;
     use crate::palette::Palette;
+    use std::io::BufReader;
 
     #[test]
     fn palette_round_trip() {
