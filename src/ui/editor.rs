@@ -8,17 +8,17 @@ use iced::widget::image::Handle;
 use iced::widget::{responsive, Action, Canvas};
 use iced::{Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
 
-struct PaletteEditor<M> {
+struct PaletteEditor<'a, M> {
     handle: Handle,
-    location: Point<usize>,
+    location: &'a Point<usize>,
     message: Box<dyn Fn(Point<usize>) -> M>,
     origin: Rectangle,
 }
 
-impl<M> PaletteEditor<M> {
+impl<'a, M> PaletteEditor<'a, M> {
     pub fn new(
         handle: Handle,
-        location: Point<usize>,
+        location: &'a Point<usize>,
         message: impl Fn(Point<usize>) -> M + 'static,
         origin: Rectangle,
     ) -> Self {
@@ -31,7 +31,7 @@ impl<M> PaletteEditor<M> {
     }
 }
 
-impl<M> Program<M> for PaletteEditor<M> {
+impl<'a, M> Program<M> for PaletteEditor<'a, M> {
     type State = ();
 
     fn update(
@@ -83,7 +83,7 @@ impl<M> Program<M> for PaletteEditor<M> {
 
 pub fn palette_editor<'a, M>(
     palette: &'a Palette,
-    location: Point<usize>,
+    location: &'a Point<usize>,
     message: impl Fn(Point<usize>) -> M + Copy + 'static,
 ) -> Element<'a, M>
 where
@@ -111,7 +111,7 @@ where
 pub fn tile_editor<'a, M>(
     palette: &'a Palette,
     tile: &'a Tile,
-    location: Point<usize>,
+    location: &'a Point<usize>,
     message: impl Fn(Point<usize>) -> M + Copy + 'static,
 ) -> Element<'a, M>
 where

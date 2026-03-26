@@ -1,9 +1,9 @@
 use iced::advanced::image::Handle;
 use crate::color::Color;
-use crate::map::TileMap;
+use crate::map::CharacterData;
 use crate::palette::Palette;
 use crate::render::ImageData;
-use crate::screen::Screen;
+use crate::screen::ScreenData;
 use crate::tile::Tile;
 use lazy_static::lazy_static;
 
@@ -17,7 +17,7 @@ pub fn from_dimensions((width, height): &(usize, usize), map: impl Fn(usize) -> 
     (0usize..width * height).map(map).collect::<Vec<u8>>()
 }
 
-pub fn render_tiles<'c>(palette: &'c Palette, tile_map: &TileMap) -> Vec<ImageData<'c>> {
+pub fn render_tiles<'c>(palette: &'c Palette, tile_map: &CharacterData) -> Vec<ImageData<'c>> {
     tile_map
         .iter()
         .map(|tile| render_tile(palette, tile))
@@ -47,8 +47,8 @@ pub fn render_tile<'c>(palette: &'c Palette, tile: &Tile) -> ImageData<'c> {
 
 pub fn render_screen<'c>(
     palette: &'c Palette,
-    character_data: &TileMap,
-    screen_data: &Screen,
+    character_data: &CharacterData,
+    screen_data: &ScreenData,
 ) -> ImageData<'c> {
     let mut data = vec![0u8; 240 * 160];
 

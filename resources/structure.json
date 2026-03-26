@@ -1,1 +1,7 @@
-{"name": "grooveboy", "screens": ["empty_art"]}
+{
+  "name": "grooveboy",
+  "palettes": [
+    "background",
+    "object"
+  ]
+}

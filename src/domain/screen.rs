@@ -1,11 +1,11 @@
 use crate::character::Character;
 
 #[derive(Debug, Default, Eq, PartialEq)]
-pub struct Screen {
+pub struct ScreenData {
     characters: [[Character; 32]; 32],
 }
 
-impl Screen {
+impl ScreenData {
     pub fn get_character(&self, x: usize, y: usize) -> &Character {
         &self.characters[y][x]
     }
@@ -15,7 +15,7 @@ impl Screen {
     }
 }
 
-impl Into<Vec<u8>> for &Screen {
+impl Into<Vec<u8>> for &ScreenData {
     fn into(self) -> Vec<u8> {
         let bytes: Vec<u8> = self.characters
             .into_iter()
@@ -32,7 +32,7 @@ impl Into<Vec<u8>> for &Screen {
     }
 }
 
-impl From<Vec<u8>> for Screen {
+impl From<Vec<u8>> for ScreenData {
     fn from(value: Vec<u8>) -> Self {
         let mut flat = value.chunks_exact(2)
             .map(|chunk| Character::from([chunk[0], chunk[1]]));
@@ -41,18 +41,18 @@ impl From<Vec<u8>> for Screen {
             std::array::from_fn(|_| flat.next().unwrap_or_default())
         });
 
-        Screen { characters }
+        ScreenData { characters }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::character::Character;
-    use crate::screen::Screen;
+    use crate::screen::ScreenData;
 
     #[test]
     fn screen_round_trip() {
-        let mut screen = Screen::default();
+        let mut screen = ScreenData::default();
         screen.set_character(Character::new(0, false, false, 0), 0, 0);
         screen.set_character(Character::new(1, false, false, 1), 1, 0);
         screen.set_character(Character::new(2, false, false, 2), 2, 0);
@@ -64,7 +64,7 @@ mod tests {
         assert_eq!(bytes.len(), 66);
         assert_eq!(bytes[..10], [0x00, 0x00, 0x01, 0x10, 0x02, 0x20, 0x03, 0x30, 0x04, 0x40]);
 
-        let screen = Screen::from(bytes);
+        let screen = ScreenData::from(bytes);
 
         assert_eq!(screen.get_character(0, 0), &Character::new(0, false, false, 0));
         assert_eq!(screen.get_character(1, 0), &Character::new(1, false, false, 1));

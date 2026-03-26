@@ -1,9 +1,28 @@
 use crate::color::Color;
-use crate::ui::Message;
-use iced::widget::{container, Text};
-use iced::widget::grid;
+use crate::ui::{Message, PaletteState};
+use iced::widget::{Text, combo_box, container};
+use iced::widget::{button, column, grid, row, text_input};
 use iced::{Element, Length};
 use iced_aw::number_input;
+
+pub fn palette_selector(palette_state: &PaletteState) -> Element<Message> {
+    column!(
+        row![
+            text_input("Add Palette...", &palette_state.new_palette_name)
+                .on_input(Message::NewPaletteNameChanged)
+                .width(Length::FillPortion(5)),
+            button("Add").on_press(Message::AddPalette)
+        ],
+        combo_box(
+            &palette_state.palettes_names,
+            "Select Palette...",
+            palette_state.palette_name.as_ref(),
+            Message::PaletteSelected
+        )
+    )
+    .width(Length::Fixed(200f32))
+    .into()
+}
 
 pub fn palette_input<'a>(selected_color: &Color) -> Element<'a, Message> {
     let Color { r, g, b } = selected_color;

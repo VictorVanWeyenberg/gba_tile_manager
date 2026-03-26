@@ -1,7 +1,7 @@
 use crate::err::ProjectIOError;
-use crate::map::TileMap;
+use crate::map::CharacterData;
 use crate::palette::Palette;
-use crate::screen::Screen;
+use crate::screen::ScreenData;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::default::Default;
@@ -13,25 +13,34 @@ use std::path::PathBuf;
 #[derive(Serialize, Deserialize)]
 struct Structure {
     name: String,
-    screens: Vec<String>,
+    #[serde(default)]
+    palettes: Vec<String>,
+    #[serde(default)]
+    character_maps: Vec<CharacterMapStructure>,
+    #[serde(default)]
+    screen_maps: Vec<ScreenMapStructure>,
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct VRamData {
-    pub bg0_character_data: TileMap,
-    pub bg0_screen_data: Screen,
-    pub bg1_character_data: TileMap,
-    pub bg1_screen_data: Screen,
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct CharacterMapStructure {
+    name: String,
+    render_palette: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct ScreenMapStructure {
+    name: String,
+    render_palette: String,
+    render_character_map: String,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Project {
     name: String,
     path: PathBuf,
-    background_palette: Palette,
-    object_palette: Palette,
-    object_character_data: TileMap,
-    screens: HashMap<String, VRamData>,
+    palettes: HashMap<String, Palette>,
+    character_maps: HashMap<CharacterMapStructure, CharacterData>,
+    screen_maps: HashMap<ScreenMapStructure, ScreenData>,
 }
 
 impl Project {
@@ -39,35 +48,34 @@ impl Project {
         Self {
             name: name.to_string(),
             path,
-            background_palette: Default::default(),
-            object_palette: Default::default(),
-            object_character_data: Default::default(),
-            screens: Default::default(),
+            palettes: Default::default(),
+            character_maps: Default::default(),
+            screen_maps: Default::default(),
         }
     }
 
     pub fn save(&self) -> Result<(), ProjectIOError> {
         let Project {
-            name,
-            path,
-            background_palette,
-            object_palette,
-            object_character_data,
-            screens,
+            name, path, palettes, character_maps, screen_maps
         } = self;
         // TODO: Write to temp dir, then move.
         write_structure(
             path,
             Structure {
                 name: name.to_string(),
-                screens: screens.keys().cloned().collect(),
+                palettes: palettes.keys().cloned().collect(),
+                character_maps: character_maps.keys().cloned().collect(),
+                screen_maps: screen_maps.keys().cloned().collect(),
             },
         )?;
-        write_palette(path, "background_palette.bin", background_palette)?;
-        write_palette(path, "object_palette.bin", object_palette)?;
-        write_character_data(path, "object_character_data.bin", object_character_data)?;
-        for (name, vram_data) in screens {
-            write_vram_data(path, name, vram_data)?;
+        for (name, palette) in palettes {
+            write_palette(path, &format!("{name}_palette.bin"), palette)?;
+        }
+        for (CharacterMapStructure { name, .. }, character_map) in character_maps {
+            write_character_data(path, &format!("{name}_character_data.bin"), character_map)?;
+        }
+        for (ScreenMapStructure { name, .. }, screen_data) in screen_maps {
+            write_screen_data(path, &format!("{name}_screen_data.bin"), screen_data)?;
         }
         Ok(())
     }
@@ -80,44 +88,49 @@ impl Project {
         &self.path
     }
 
-    pub fn background_palette(&self) -> &Palette {
-        &self.background_palette
+
+    pub fn palette(&self, name: &str) -> Option<&Palette> {
+        self.palettes.get(name)
     }
 
-    pub fn object_palette(&self) -> &Palette {
-        &self.object_palette
+    pub fn palette_mut(&mut self, name: &str) -> Option<&mut Palette> {
+        self.palettes.get_mut(name)
     }
 
-    pub fn object_character_data(&self) -> &TileMap {
-        &self.object_character_data
+    pub fn add_palette(&mut self, name: &str) {
+        self.palettes.insert(name.to_string(), Palette::default());
     }
 
-    pub fn screens(&self) -> &HashMap<String, VRamData> {
-        &self.screens
+    pub fn palette_names(&self) -> Vec<&String> {
+        self.palettes.keys().collect()
     }
 
-    pub fn name_mut(&mut self) -> &mut String {
-        &mut self.name
+    pub fn character_data(&self, name: &str) -> Option<(&CharacterMapStructure, &CharacterData)> {
+        self.character_maps.iter()
+            .find(|(key, _)| {
+                key.name == name
+            })
     }
 
-    pub fn path_mut(&mut self) -> &mut PathBuf {
-        &mut self.path
+    pub fn character_data_mut(&mut self, name: &str) -> Option<(&CharacterMapStructure, &mut CharacterData)> {
+        self.character_maps.iter_mut()
+            .find(|(key, _)| {
+                key.name == name
+            })
     }
 
-    pub fn background_palette_mut(&mut self) -> &mut Palette {
-        &mut self.background_palette
+    pub fn screen_data(&self, name: &str) -> Option<(&ScreenMapStructure, &ScreenData)> {
+        self.screen_maps.iter()
+            .find(|(key, _)| {
+                key.name == name
+            })
     }
 
-    pub fn object_palette_mut(&mut self) -> &mut Palette {
-        &mut self.object_palette
-    }
-
-    pub fn object_character_data_mut(&mut self) -> &mut TileMap {
-        &mut self.object_character_data
-    }
-
-    pub fn screens_mut(&mut self) -> &mut HashMap<String, VRamData> {
-        &mut self.screens
+    pub fn screen_data_mut(&mut self, name: &str) -> Option<(&ScreenMapStructure, &mut ScreenData)> {
+        self.screen_maps.iter_mut()
+            .find(|(key, _)| {
+                key.name == name
+            })
     }
 
 }
@@ -139,40 +152,17 @@ fn write_palette(path: &PathBuf, file_name: &str, palette: &Palette) -> Result<(
 fn write_character_data(
     path: &PathBuf,
     file_name: &str,
-    tile_map: &TileMap,
+    tile_map: &CharacterData,
 ) -> Result<(), ProjectIOError> {
     let character_data_location = path.join(file_name);
     let bytes: Vec<u8> = tile_map.into();
     Ok(fs::write(character_data_location, bytes)?)
 }
 
-fn write_vram_data(
-    path: &PathBuf,
-    screen_name: &str,
-    VRamData {
-        bg0_character_data,
-        bg0_screen_data,
-        bg1_character_data,
-        bg1_screen_data,
-    }: &VRamData,
-) -> Result<(), ProjectIOError> {
-    let bg0_character_data_file_name = format!("bg0_{}_character_data.bin", screen_name);
-    let bg1_character_data_file_name = format!("bg1_{}_character_data.bin", screen_name);
-    let bg0_screen_data_file_name = format!("bg0_{}_screen_data.bin", screen_name);
-    let bg1_screen_data_file_name = format!("bg1_{}_screen_data.bin", screen_name);
-
-    write_character_data(path, &bg0_character_data_file_name, bg0_character_data)?;
-    write_screen_data(path, &bg0_screen_data_file_name, bg0_screen_data)?;
-    write_character_data(path, &bg1_character_data_file_name, bg1_character_data)?;
-    write_screen_data(path, &bg1_screen_data_file_name, bg1_screen_data)?;
-
-    Ok(())
-}
-
 fn write_screen_data(
     path: &PathBuf,
     file_name: &str,
-    screen: &Screen,
+    screen: &ScreenData,
 ) -> Result<(), ProjectIOError> {
     let screen_location = path.join(file_name);
     let bytes: Vec<u8> = screen.into();
@@ -183,21 +173,22 @@ impl TryFrom<PathBuf> for Project {
     type Error = ProjectIOError;
 
     fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
-        let Structure { name, screens } = read_structure(&path)?;
-        let background_palette = read_palette(&path, "background_palette.bin")?;
-        let object_palette = read_palette(&path, "object_palette.bin")?;
-        let object_character_data = read_character_data(&path, "object_character_data.bin")?;
-        let screens = screens
-            .into_iter()
-            .map(|name| read_vram_data(&path, name))
-            .collect::<Result<HashMap<String, VRamData>, ProjectIOError>>()?;
+        let Structure { name, palettes, character_maps, screen_maps, } = read_structure(&path)?;
+        let palettes = palettes.into_iter()
+            .map(|name| read_palette(&path, name))
+            .collect::<Result<HashMap<String, Palette>, ProjectIOError>>()?;
+        let character_maps = character_maps.into_iter()
+            .map(|structure| read_character_data(&path, structure))
+            .collect::<Result<HashMap<CharacterMapStructure, CharacterData>, ProjectIOError>>()?;
+        let screen_maps = screen_maps.into_iter()
+            .map(|structure| read_screen_data(&path, structure))
+            .collect::<Result<HashMap<ScreenMapStructure, ScreenData>, ProjectIOError>>()?;
         Ok(Project {
             name,
             path,
-            background_palette,
-            object_palette,
-            object_character_data,
-            screens,
+            palettes,
+            character_maps,
+            screen_maps,
         })
     }
 }
@@ -208,55 +199,33 @@ fn read_structure(path: &PathBuf) -> Result<Structure, ProjectIOError> {
     Ok(serde_json::from_reader(BufReader::new(file))?)
 }
 
-fn read_palette(path: &PathBuf, file_name: &str) -> Result<Palette, ProjectIOError> {
+fn read_palette(path: &PathBuf, name: String) -> Result<(String, Palette), ProjectIOError> {
+    let file_name = format!("{name}_palette.bin");
     let palette_location = path.join(file_name);
     let file = File::open(palette_location)?;
-    Ok(Palette::from(file))
+    Ok((name, Palette::from(file)))
 }
 
-fn read_character_data(path: &PathBuf, file_name: &str) -> Result<TileMap, ProjectIOError> {
+fn read_character_data(path: &PathBuf, character_map_structure: CharacterMapStructure) -> Result<(CharacterMapStructure, CharacterData), ProjectIOError> {
+    let file_name = &format!("{}_character_data.bin", &character_map_structure.name);
     let tile_map_location = path.join(file_name);
     let file = File::open(tile_map_location)?;
-    Ok(TileMap::from(file))
+    Ok((character_map_structure, CharacterData::from(file)))
 }
 
-fn read_vram_data(
-    path: &PathBuf,
-    screen_name: String,
-) -> Result<(String, VRamData), ProjectIOError> {
-    let bg0_character_data_file_name = format!("bg0_{}_character_data.bin", screen_name);
-    let bg1_character_data_file_name = format!("bg1_{}_character_data.bin", screen_name);
-    let bg0_screen_data_file_name = format!("bg0_{}_screen_data.bin", screen_name);
-    let bg1_screen_data_file_name = format!("bg1_{}_screen_data.bin", screen_name);
-
-    let bg0_character_data = read_character_data(path, &bg0_character_data_file_name)?;
-    let bg1_character_data = read_character_data(path, &bg1_character_data_file_name)?;
-    let bg0_screen_data = read_screen_data(path, &bg0_screen_data_file_name)?;
-    let bg1_screen_data = read_screen_data(path, &bg1_screen_data_file_name)?;
-
-    Ok((
-        screen_name,
-        VRamData {
-            bg0_character_data,
-            bg1_character_data,
-            bg0_screen_data,
-            bg1_screen_data,
-        },
-    ))
-}
-
-fn read_screen_data(path: &PathBuf, file_name: &str) -> Result<Screen, ProjectIOError> {
+fn read_screen_data(path: &PathBuf, screen_map_structure: ScreenMapStructure) -> Result<(ScreenMapStructure, ScreenData), ProjectIOError> {
+    let file_name = format!("{}_screen_data.bin", &screen_map_structure.name);
     let screen_location = path.join(file_name);
     let bytes = fs::read(screen_location)?;
-    Ok(Screen::from(bytes))
+    Ok((screen_map_structure, ScreenData::from(bytes)))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::project::{Project, VRamData};
     use std::fs;
     use std::path::PathBuf;
     use tempdir::TempDir;
+    use crate::project::Project;
 
     fn read_project() -> Project {
         let mut directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -279,15 +248,5 @@ mod tests {
         let that = Project::try_from(temp_dir).unwrap();
 
         assert_eq!(this, that);
-
-        let VRamData {
-            bg0_character_data,
-            bg0_screen_data,
-            bg1_character_data,
-            bg1_screen_data,
-        } = that.screens.get("empty_art").unwrap();
-
-        let bg0_character = bg0_screen_data.get_character(0, 0);
-        println!("{:?}", bg0_character);
     }
 }

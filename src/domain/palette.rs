@@ -4,9 +4,17 @@ use iced::widget::image::Handle;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Palette {
     colors: Vec<Color>,
+}
+
+impl Default for Palette {
+    fn default() -> Self {
+        Self {
+            colors: vec![Color::black()]
+        }
+    }
 }
 
 impl Palette {

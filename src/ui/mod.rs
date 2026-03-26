@@ -1,9 +1,9 @@
 use crate::color::Color;
 use crate::palette::Palette;
 use crate::project::Project;
-use crate::ui::editor::{palette_editor, tile_editor};
-use crate::ui::palette_input::palette_input;
-use iced::widget::{Text, row};
+use crate::ui::editor::palette_editor;
+use crate::ui::palette_input::{palette_input, palette_selector};
+use iced::widget::{Text, column, combo_box, row};
 use iced::{Element, Point};
 use iced_aw::{TabLabel, Tabs};
 
@@ -17,43 +17,42 @@ pub struct State {
     tiles_state: TilesState,
 }
 
-#[derive(Default)]
-pub enum PaletteType {
-    #[default]
-    Background,
-    Object,
-}
-
-#[derive(Default)]
 pub struct PaletteState {
-    palette_type: PaletteType,
+    palette_name: Option<String>,
+    new_palette_name: String,
+    palettes_names: combo_box::State<String>,
     location: Point<usize>,
 }
 
-pub struct TilesState {
-    palette_type: PaletteType,
-    location: Point<usize>,
-    character_map: String,
-    tile_index: usize,
-}
-
-impl Default for TilesState {
-    fn default() -> Self {
+impl PaletteState {
+    fn new(project: &Project) -> Self {
         Self {
-            palette_type: Default::default(),
+            palette_name: None,
+            new_palette_name: "".to_string(),
+            palettes_names: combo_box::State::new(
+                project.palette_names().into_iter().cloned().collect(),
+            ),
             location: Default::default(),
-            character_map: "empty_art".to_string(),
-            tile_index: 23,
         }
     }
 }
 
+#[derive(Default)]
+pub struct TilesState {
+    palette_name: Option<String>,
+    character_data_name: Option<String>,
+    selected_tile: usize,
+    character_data_names: combo_box::State<String>,
+    location: Point<usize>,
+}
+
 impl State {
     pub fn new(project: Project) -> Self {
+        let palette_state = PaletteState::new(&project);
         Self {
             project,
             selected_tab: Default::default(),
-            palette_state: Default::default(),
+            palette_state,
             tiles_state: Default::default(),
         }
     }
@@ -62,9 +61,12 @@ impl State {
 #[derive(Clone)]
 pub enum Message {
     TabSelected(TabId),
+    NewPaletteNameChanged(String),
     PaletteClicked(Point<usize>),
     PaletteChanged(Color),
     TileClicked(Point<usize>),
+    PaletteSelected(String),
+    AddPalette,
 }
 
 #[derive(Clone, Default, Eq, PartialEq)]
@@ -75,7 +77,7 @@ pub enum TabId {
     Screens,
 }
 
-pub fn view(state: &State) -> Element<'_, Message> {
+pub fn view(state: &State) -> Element<Message> {
     Tabs::new(Message::TabSelected)
         .push(
             TabId::Palettes,
@@ -98,47 +100,35 @@ pub fn view(state: &State) -> Element<'_, Message> {
 
 fn palettes_view<'a>(
     project: &'a Project,
-    PaletteState {
-        palette_type,
-        location: cursor,
-    }: &'a PaletteState,
+    palette_state: &'a PaletteState,
 ) -> Element<'a, Message> {
-    let palette = get_selected_palette(project, palette_type);
-    let selected_color = get_palette_color_at_point(palette, cursor);
-    row! {
-        palette_input(selected_color),
-        palette_editor(palette, *cursor, Message::PaletteClicked)
+    let PaletteState {
+        palette_name,
+        location,
+        ..
+    } = palette_state;
+    let selector = palette_selector(palette_state);
+    match palette_name {
+        None => row![selector,],
+        Some(palette_name) => {
+            let palette = project.palette(palette_name).unwrap();
+            let selected_color = get_palette_color_at_point(palette, location);
+            row! {
+                column!(
+                    selector,
+                    palette_input(selected_color)
+                ),
+                palette_editor(palette, location, Message::PaletteClicked)
+            }
+        }
     }
     .spacing(10)
     .padding(10)
     .into()
 }
 
-fn get_selected_palette<'p>(project: &'p Project, palette_type: &PaletteType) -> &'p Palette {
-    match palette_type {
-        PaletteType::Background => project.background_palette(),
-        PaletteType::Object => project.object_palette(),
-    }
-}
-
-fn tiles_view<'a>(
-    project: &'a Project,
-    TilesState {
-        palette_type,
-        location: cursor,
-        character_map,
-        tile_index,
-    }: &'a TilesState,
-) -> Element<'a, Message> {
-    let tile = project
-        .screens()
-        .get(character_map)
-        .unwrap()
-        .bg1_character_data
-        .get(*tile_index)
-        .unwrap();
-    let palette = get_selected_palette(project, palette_type);
-    tile_editor(palette, tile, *cursor, Message::TileClicked)
+fn tiles_view<'a>(project: &'a Project, tiles_state: &'a TilesState) -> Element<'a, Message> {
+    Text::new("Tiles").into()
 }
 
 fn screens_view(_: &State) -> Element<'_, Message> {
@@ -153,6 +143,16 @@ pub fn update(state: &mut State, message: Message) {
         }
         Message::PaletteChanged(color) => on_palette_changed(state, color),
         Message::TileClicked(point) => state.tiles_state.location = point,
+        Message::NewPaletteNameChanged(name) => state.palette_state.new_palette_name = name,
+        Message::PaletteSelected(name) => state.palette_state.palette_name = Some(name),
+        Message::AddPalette => {
+            state
+                .project
+                .add_palette(&state.palette_state.new_palette_name);
+            state.palette_state.new_palette_name.clear();
+            state.palette_state.palettes_names =
+                combo_box::State::new(state.project.palette_names().into_iter().cloned().collect())
+        }
     }
 }
 
@@ -161,14 +161,12 @@ fn get_palette_color_at_point<'a>(palette: &'a Palette, point: &Point<usize>) ->
 }
 
 fn on_palette_changed(state: &mut State, color: Color) {
-    let palette_type = &state.palette_state.palette_type;
-    let project = &mut state.project;
-    let point = &state.palette_state.location;
-    let palette = match palette_type {
-        PaletteType::Background => project.background_palette_mut(),
-        PaletteType::Object => project.object_palette_mut(),
-    };
-    set_palette_color_at_point(palette, point, color)
+    if let Some(palette_name) = &state.palette_state.palette_name {
+        let project = &mut state.project;
+        let point = &state.palette_state.location;
+        let palette = project.palette_mut(&palette_name).unwrap();
+        set_palette_color_at_point(palette, point, color)
+    }
 }
 
 fn set_palette_color_at_point(palette: &mut Palette, point: &Point<usize>, color: Color) {

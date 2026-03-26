@@ -3,11 +3,11 @@ use std::io::Read;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Default, Eq, PartialEq)]
-pub struct TileMap {
+pub struct CharacterData {
     tiles: Vec<Tile>,
 }
 
-impl Deref for TileMap {
+impl Deref for CharacterData {
     type Target = Vec<Tile>;
 
     fn deref(&self) -> &Self::Target {
@@ -15,13 +15,13 @@ impl Deref for TileMap {
     }
 }
 
-impl DerefMut for TileMap {
+impl DerefMut for CharacterData {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.tiles
     }
 }
 
-impl Into<Vec<u8>> for &TileMap {
+impl Into<Vec<u8>> for &CharacterData {
     fn into(self) -> Vec<u8> {
         self.tiles.iter()
             .map::<[u8; 32], _>(|tile| tile.into())
@@ -30,7 +30,7 @@ impl Into<Vec<u8>> for &TileMap {
     }
 }
 
-impl<T> From<T> for TileMap
+impl<T> From<T> for CharacterData
 where
     T: Read,
 {
@@ -40,6 +40,6 @@ where
         while value.read_exact(&mut buf).is_ok() {
             tiles.push(Tile::from(buf));
         }
-        TileMap { tiles }
+        CharacterData { tiles }
     }
 }
