@@ -1,9 +1,11 @@
-use crate::tile::Tile;
 use std::io::Read;
+use crate::project::Savable;
+use crate::tile::Tile;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct CharacterData {
+    name: String,
     tiles: Vec<Tile>,
 }
 
@@ -21,25 +23,28 @@ impl DerefMut for CharacterData {
     }
 }
 
-impl Into<Vec<u8>> for &CharacterData {
-    fn into(self) -> Vec<u8> {
+impl Savable for CharacterData {
+    fn name(&self) -> &String {
+        &self.name
+    }
+
+    fn suffix() -> &'static str {
+        "_character_data.bin"
+    }
+
+    fn create<R: Read>(name: impl ToString, mut data: R) -> Self {
+        let mut buf = [0u8; 32];
+        let mut tiles = vec![];
+        while data.read_exact(&mut buf).is_ok() {
+            tiles.push(Tile::from(buf));
+        }
+        CharacterData { name: name.to_string(), tiles }
+    }
+
+    fn as_data(&self) -> Vec<u8> {
         self.tiles.iter()
             .map::<[u8; 32], _>(|tile| tile.into())
             .flatten()
             .collect()
-    }
-}
-
-impl<T> From<T> for CharacterData
-where
-    T: Read,
-{
-    fn from(mut value: T) -> Self {
-        let mut buf = [0u8; 32];
-        let mut tiles = vec![];
-        while value.read_exact(&mut buf).is_ok() {
-            tiles.push(Tile::from(buf));
-        }
-        CharacterData { tiles }
     }
 }

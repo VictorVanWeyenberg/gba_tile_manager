@@ -1,7 +1,10 @@
 use crate::character::Character;
+use crate::project::Savable;
+use std::io::Read;
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ScreenData {
+    name: String,
     characters: [[Character; 32]; 32],
 }
 
@@ -15,8 +18,29 @@ impl ScreenData {
     }
 }
 
-impl Into<Vec<u8>> for &ScreenData {
-    fn into(self) -> Vec<u8> {
+impl Savable for ScreenData {
+    fn name(&self) -> &String {
+        &self.name
+    }
+
+    fn suffix() -> &'static str {
+        "_screen_data.bin"
+    }
+
+    fn create<R: Read>(name: impl ToString, mut data: R) -> Self {
+        let mut buf = [0u8; 2];
+        let mut characters = [[Character::default(); 32]; 32];
+        let mut index = 0;
+        while data.read_exact(&mut buf).is_ok() {
+            let x = index % 32;
+            let y = index / 32;
+            characters[y][x] = Character::from(buf);
+            index += 1;
+        }
+        ScreenData { name: name.to_string(), characters }
+    }
+
+    fn as_data(&self) -> Vec<u8> {
         let bytes: Vec<u8> = self.characters
             .into_iter()
             .flatten()
@@ -32,26 +56,22 @@ impl Into<Vec<u8>> for &ScreenData {
     }
 }
 
-impl From<Vec<u8>> for ScreenData {
-    fn from(value: Vec<u8>) -> Self {
-        let mut flat = value.chunks_exact(2)
-            .map(|chunk| Character::from([chunk[0], chunk[1]]));
-
-        let characters = std::array::from_fn(|_| {
-            std::array::from_fn(|_| flat.next().unwrap_or_default())
-        });
-
-        ScreenData { characters }
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use tempdir::TempDir;
     use crate::character::Character;
+    use crate::project::Savable;
     use crate::screen::ScreenData;
 
     #[test]
     fn screen_round_trip() {
+        let temp_dir = TempDir::new("gba_tile_manager::screen_round_trip")
+            .unwrap()
+            .path()
+            .to_owned();
+        fs::create_dir(temp_dir.clone()).unwrap();
+
         let mut screen = ScreenData::default();
         screen.set_character(Character::new(0, false, false, 0), 0, 0);
         screen.set_character(Character::new(1, false, false, 1), 1, 0);
@@ -60,11 +80,8 @@ mod tests {
         screen.set_character(Character::new(4, false, false, 4), 4, 0);
         screen.set_character(Character::new(5, false, false, 5), 0, 1);
 
-        let bytes: Vec<u8> = (&screen).into();
-        assert_eq!(bytes.len(), 66);
-        assert_eq!(bytes[..10], [0x00, 0x00, 0x01, 0x10, 0x02, 0x20, 0x03, 0x30, 0x04, 0x40]);
-
-        let screen = ScreenData::from(bytes);
+        let screen_data_path = screen.save(temp_dir).expect("Could not save screen data.");
+        let screen = ScreenData::read(screen_data_path).expect("Could not read screen data.");
 
         assert_eq!(screen.get_character(0, 0), &Character::new(0, false, false, 0));
         assert_eq!(screen.get_character(1, 0), &Character::new(1, false, false, 1));

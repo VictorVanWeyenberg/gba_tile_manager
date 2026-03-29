@@ -1,4 +1,3 @@
-use iced::advanced::image::Handle;
 use crate::color::Color;
 use crate::map::CharacterData;
 use crate::palette::Palette;
@@ -10,7 +9,7 @@ use lazy_static::lazy_static;
 pub const DIM_CURSOR: usize = 8;
 lazy_static! {
     static ref CURSOR_PALETTE: Palette =
-        Palette::new(vec![Color::black(), Color::new(0, 31, 31).unwrap(),]);
+        Palette::with_colors("cursor palette", vec![Color::black(), Color::new(0, 31, 31).unwrap(),]);
 }
 
 pub fn from_dimensions((width, height): &(usize, usize), map: impl Fn(usize) -> u8) -> Vec<u8> {

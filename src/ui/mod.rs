@@ -30,7 +30,9 @@ impl PaletteState {
             palette_name: None,
             new_palette_name: "".to_string(),
             palettes_names: combo_box::State::new(
-                project.palette_names().into_iter().cloned().collect(),
+                project.palette_names().into_iter()
+                    .map(|name| name.to_string())
+                    .collect(),
             ),
             location: Default::default(),
         }
@@ -112,7 +114,7 @@ fn palettes_view<'a>(
         None => row![selector,],
         Some(palette_name) => {
             let palette = project.palette(palette_name).unwrap();
-            let selected_color = get_palette_color_at_point(palette, location);
+            let selected_color = palette.get(location.y * 16 + location.x);
             row! {
                 column!(
                     selector,
@@ -151,13 +153,11 @@ pub fn update(state: &mut State, message: Message) {
                 .add_palette(&state.palette_state.new_palette_name);
             state.palette_state.new_palette_name.clear();
             state.palette_state.palettes_names =
-                combo_box::State::new(state.project.palette_names().into_iter().cloned().collect())
+                combo_box::State::new(state.project.palette_names().into_iter()
+                    .map(|name| name.to_string())
+                    .collect())
         }
     }
-}
-
-fn get_palette_color_at_point<'a>(palette: &'a Palette, point: &Point<usize>) -> &'a Color {
-    palette.get(point.y * 16 + point.x).unwrap_or(&palette[0])
 }
 
 fn on_palette_changed(state: &mut State, color: Color) {

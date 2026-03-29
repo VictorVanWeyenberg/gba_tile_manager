@@ -4,7 +4,8 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug)]
 pub enum ProjectIOError {
     IO(std::io::Error),
-    Serde(serde_json::Error),
+    // Serde(serde_json::Error),
+    Custom(String),
 }
 
 impl Error for ProjectIOError {}
@@ -21,8 +22,14 @@ impl From<std::io::Error> for ProjectIOError {
     }
 }
 
-impl From<serde_json::Error> for ProjectIOError {
+/* impl From<serde_json::Error> for ProjectIOError {
     fn from(value: serde_json::Error) -> Self {
         ProjectIOError::Serde(value)
+    }
+} */
+
+impl From<&str> for ProjectIOError {
+    fn from(value: &str) -> Self {
+        ProjectIOError::Custom(value.to_string())
     }
 }

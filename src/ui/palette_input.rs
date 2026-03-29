@@ -24,8 +24,12 @@ pub fn palette_selector(palette_state: &PaletteState) -> Element<Message> {
     .into()
 }
 
-pub fn palette_input<'a>(selected_color: &Color) -> Element<'a, Message> {
-    let Color { r, g, b } = selected_color;
+pub fn palette_input<'a>(selected_color: Option<&Color>) -> Element<'a, Message> {
+    let (r, g, b) = if let Some(Color { r, g, b }) = selected_color {
+        (r, g, b)
+    } else {
+        (&0, &0, &0)
+    };
     let rr = *r;
     let gg = *g;
     let bb = *b;
