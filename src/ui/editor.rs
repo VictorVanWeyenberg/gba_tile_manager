@@ -8,14 +8,14 @@ use iced::widget::image::Handle;
 use iced::widget::{responsive, Action, Canvas};
 use iced::{Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
 
-struct PaletteEditor<'a, M> {
+struct Editor<'a, M> {
     handle: Handle,
     location: &'a Point<usize>,
     message: Box<dyn Fn(Point<usize>) -> M>,
     origin: Rectangle,
 }
 
-impl<'a, M> PaletteEditor<'a, M> {
+impl<'a, M> Editor<'a, M> {
     pub fn new(
         handle: Handle,
         location: &'a Point<usize>,
@@ -31,7 +31,7 @@ impl<'a, M> PaletteEditor<'a, M> {
     }
 }
 
-impl<'a, M> Program<M> for PaletteEditor<'a, M> {
+impl<'a, M> Program<M> for Editor<'a, M> {
     type State = ();
 
     fn update(
@@ -93,7 +93,7 @@ where
     responsive(move |size| {
         let size = size.width.min(size.height);
         let origin = Rectangle::new(Point::ORIGIN, Size::new(size, size));
-        Canvas::new(PaletteEditor::new(
+        Canvas::new(Editor::new(
             palette.render(),
             location,
             message,
@@ -121,7 +121,7 @@ where
     responsive(move |size| {
         let size = size.width.min(size.height);
         let origin = Rectangle::new(Point::ORIGIN, Size::new(size, size));
-        Canvas::new(PaletteEditor::new(
+        Canvas::new(Editor::new(
             tile.render_with(palette),
             location,
             message,

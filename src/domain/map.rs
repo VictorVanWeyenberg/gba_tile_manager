@@ -2,6 +2,9 @@ use crate::project::Savable;
 use crate::tile::Tile;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
+use iced::widget::image::Handle;
+use crate::palette::Palette;
+use crate::render::render_tiles;
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct CharacterData {
@@ -15,6 +18,12 @@ impl CharacterData {
             name: name.to_string(),
             tiles: vec![],
         }
+    }
+
+    pub fn render(&self, palette: &Palette) -> Vec<Handle> {
+        render_tiles(palette, self).into_iter()
+            .map(|tile| tile.to_handle())
+            .collect()
     }
 }
 
