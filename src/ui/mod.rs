@@ -6,9 +6,11 @@ use crate::ui::palette_input::{palette_input, palette_selector};
 use iced::widget::{Text, column, combo_box, row};
 use iced::{Element, Point};
 use iced_aw::{TabLabel, Tabs};
+use crate::ui::tile_input::character_map_selector;
 
 mod editor;
 mod palette_input;
+mod tile_input;
 
 pub struct State {
     project: Project,
@@ -29,33 +31,45 @@ impl PaletteState {
         Self {
             palette_name: None,
             new_palette_name: "".to_string(),
-            palettes_names: combo_box::State::new(
-                project.palette_names().into_iter()
-                    .map(|name| name.to_string())
-                    .collect(),
-            ),
+            palettes_names: combo_box::State::new(project.palette_names()),
             location: Default::default(),
         }
     }
 }
 
-#[derive(Default)]
 pub struct TilesState {
     palette_name: Option<String>,
     character_data_name: Option<String>,
     selected_tile: usize,
     character_data_names: combo_box::State<String>,
+    palettes_names: combo_box::State<String>,
     location: Point<usize>,
+    new_character_map_name: String,
+}
+
+impl TilesState {
+    fn new(project: &Project) -> Self {
+        Self {
+            palette_name: None,
+            character_data_name: None,
+            selected_tile: 0,
+            character_data_names: combo_box::State::new(project.character_data_names()),
+            palettes_names: combo_box::State::new(project.palette_names()),
+            location: Default::default(),
+            new_character_map_name: "".to_string(),
+        }
+    }
 }
 
 impl State {
     pub fn new(project: Project) -> Self {
         let palette_state = PaletteState::new(&project);
+        let tiles_state = TilesState::new(&project);
         Self {
             project,
             selected_tab: Default::default(),
             palette_state,
-            tiles_state: Default::default(),
+            tiles_state,
         }
     }
 }
@@ -69,6 +83,9 @@ pub enum Message {
     TileClicked(Point<usize>),
     PaletteSelected(String),
     AddPalette,
+    AddCharacterMap,
+    CharacterMapSelected(String),
+    TilesRenderPaletteSelected(String),
 }
 
 #[derive(Clone, Default, Eq, PartialEq)]
@@ -130,7 +147,7 @@ fn palettes_view<'a>(
 }
 
 fn tiles_view<'a>(project: &'a Project, tiles_state: &'a TilesState) -> Element<'a, Message> {
-    Text::new("Tiles").into()
+    character_map_selector(project, tiles_state)
 }
 
 fn screens_view(_: &State) -> Element<'_, Message> {
@@ -153,10 +170,19 @@ pub fn update(state: &mut State, message: Message) {
                 .add_palette(&state.palette_state.new_palette_name);
             state.palette_state.new_palette_name.clear();
             state.palette_state.palettes_names =
-                combo_box::State::new(state.project.palette_names().into_iter()
-                    .map(|name| name.to_string())
-                    .collect())
+                combo_box::State::new(state.project.palette_names());
+            state.tiles_state.palettes_names = combo_box::State::new(state.project.palette_names())
         }
+        Message::AddCharacterMap => {
+            state
+                .project
+                .add_character_data(&state.tiles_state.new_character_map_name);
+            state.tiles_state.new_character_map_name.clear();
+            state.tiles_state.character_data_names =
+                combo_box::State::new(state.project.character_data_names())
+        }
+        Message::CharacterMapSelected(name) => state.tiles_state.character_data_name = Some(name),
+        Message::TilesRenderPaletteSelected(name) => state.tiles_state.palette_name = Some(name),
     }
 }
 

@@ -1,12 +1,21 @@
-use std::io::Read;
 use crate::project::Savable;
 use crate::tile::Tile;
+use std::io::Read;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct CharacterData {
     name: String,
     tiles: Vec<Tile>,
+}
+
+impl CharacterData {
+    pub fn new(name: impl ToString) -> Self {
+        Self {
+            name: name.to_string(),
+            tiles: vec![],
+        }
+    }
 }
 
 impl Deref for CharacterData {
@@ -38,11 +47,15 @@ impl Savable for CharacterData {
         while data.read_exact(&mut buf).is_ok() {
             tiles.push(Tile::from(buf));
         }
-        CharacterData { name: name.to_string(), tiles }
+        CharacterData {
+            name: name.to_string(),
+            tiles,
+        }
     }
 
     fn as_data(&self) -> Vec<u8> {
-        self.tiles.iter()
+        self.tiles
+            .iter()
             .map::<[u8; 32], _>(|tile| tile.into())
             .flatten()
             .collect()

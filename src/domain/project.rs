@@ -101,10 +101,10 @@ impl Project {
         self.palettes.push(Palette::new(name))
     }
 
-    pub fn palette_names(&self) -> Vec<&str> {
+    pub fn palette_names(&self) -> Vec<String> {
         self.palettes
             .iter()
-            .map(|palette| palette.name().as_str())
+            .map(|palette| palette.name().to_string())
             .collect()
     }
 
@@ -116,6 +116,16 @@ impl Project {
         self.character_maps
             .iter_mut()
             .find(|map| map.name() == name)
+    }
+
+    pub fn add_character_data(&mut self, name: &str) {
+        self.character_maps.push(CharacterData::new(name))
+    }
+
+    pub fn character_data_names(&self) -> Vec<String> {
+        self.character_maps.iter()
+            .map(|map| map.name().to_string())
+            .collect()
     }
 
     pub fn screen_data(&self, name: &str) -> Option<&ScreenData> {
