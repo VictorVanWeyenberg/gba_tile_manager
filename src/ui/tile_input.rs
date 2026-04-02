@@ -17,6 +17,15 @@ pub struct TileSelector<'a, M> {
     origin: Rectangle,
 }
 
+impl<'a, M> TileSelector<'a, M> {
+    fn dimensions(&self) -> (f32, f32, f32) {
+        let width = self.origin.size().width;
+        let side = width / TILE_ROW_N as f32;
+        let height = side * (self.tiles.len() as f32 / TILE_ROW_N as f32 + 0.5f32);
+        (width, height, side)
+    }
+}
+
 impl<'a, M> Program<M> for TileSelector<'a, M> {
     type State = ();
 
@@ -25,29 +34,29 @@ impl<'a, M> Program<M> for TileSelector<'a, M> {
         _: &Self::State,
         renderer: &Renderer,
         _: &Theme,
-        bounds: Rectangle,
+        _: Rectangle,
         _: Cursor,
     ) -> Vec<Geometry<Renderer>> {
-        let mut frame = Frame::new(renderer, bounds.size());
+        let (width, height, side) = self.dimensions();
+        let mut frame = Frame::new(renderer, Size::new(side * TILE_ROW_N as f32, height));
+
+        for (n, handle) in self.tiles.iter().enumerate() {
+            let x = (n % TILE_ROW_N) * side as usize;
+            let y = n / TILE_ROW_N * side as usize;
+            frame.draw_image(
+                Rectangle::new(Point::new(x as f32, y as f32), Size::new(side, side)),
+                Image::new(handle.clone()).filter_method(FilterMethod::Nearest),
+            )
+        }
 
         let x = *self.selected_tile % TILE_ROW_N;
         let y = *self.selected_tile / TILE_ROW_N;
         let indicator =
-            render_cursor((TILE_ROW_N, self.tiles.len() / TILE_ROW_N), x, y).to_handle();
+            render_cursor((TILE_ROW_N, ((height / side) + 0.5f32) as usize), x, y).to_handle();
         frame.draw_image(
-            self.origin,
+            Rectangle::new(Point::new(0f32, 0f32), Size::new(width, height)),
             Image::new(indicator).filter_method(FilterMethod::Nearest),
         );
-
-        let side = self.origin.width / TILE_ROW_N as f32;
-        for (n, handle) in self.tiles.iter().enumerate() {
-            let x = (n % TILE_ROW_N) as f32 * side;
-            let y = n as f32 / TILE_ROW_N as f32 * side;
-            frame.draw_image(
-                Rectangle::new(Point::new(x, y), Size::new(side, side)),
-                Image::new(handle.clone()).filter_method(FilterMethod::Nearest),
-            )
-        }
 
         vec![frame.into_geometry()]
     }
@@ -71,13 +80,17 @@ fn tile_selector<'a>(
     } {
         Some(
             responsive(|size| {
-                scrollable(canvas(TileSelector {
+                let program = TileSelector {
                     tiles: character_data.render(palette),
                     message: Box::new(Message::TileClicked),
                     selected_tile,
                     origin: Rectangle::new(Point::new(0f32, 0f32), size),
-                }))
-                .into()
+                };
+                let (width, height, _) = program.dimensions();
+                scrollable(canvas(program).width(width).height(height))
+                    .width(Length::Fill)
+                    .height(height)
+                    .into()
             })
             .width(Length::Fill)
             .height(Length::Fill)
@@ -122,5 +135,5 @@ pub fn character_map_selector<'a>(
     if let Some(selector) = tile_selector(project, tiles_state) {
         input = input.push(selector);
     }
-    input.width(Length::Fixed(200f32)).padding(10).into()
+    input.spacing(10).padding(10).into()
 }

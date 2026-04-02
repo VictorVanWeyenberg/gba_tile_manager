@@ -1,3 +1,5 @@
+extern crate core;
+
 mod domain;
 mod render;
 mod ui;
