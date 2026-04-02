@@ -6,11 +6,12 @@ use crate::ui::palette_input::{palette_input, palette_selector};
 use iced::widget::{Text, column, combo_box, row};
 use iced::{Element, Point};
 use iced_aw::{TabLabel, Tabs};
-use crate::ui::tile_input::character_map_selector;
+use crate::ui::tile_view::character_map_selector;
 
 mod editor;
 mod palette_input;
-mod tile_input;
+mod tile_selector;
+mod tile_view;
 
 pub struct State {
     project: Project,

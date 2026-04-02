@@ -1,12 +1,11 @@
+use iced::advanced::image::{FilterMethod, Handle, Image};
+use iced::{mouse, Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
+use iced::mouse::Cursor;
+use iced::widget::{canvas, responsive, scrollable, Action};
+use iced::widget::canvas::{Frame, Geometry, Program};
 use crate::project::Project;
 use crate::render::render_cursor;
 use crate::ui::{Message, TilesState};
-use iced::advanced::image::{FilterMethod, Image};
-use iced::mouse::Cursor;
-use iced::widget::canvas::{Frame, Geometry, Program};
-use iced::widget::image::Handle;
-use iced::widget::{button, canvas, column, combo_box, responsive, row, scrollable, text_input, Action};
-use iced::{mouse, Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
 
 const TILE_ROW_N: usize = 4;
 
@@ -87,7 +86,7 @@ impl<'a, M> Program<M> for TileSelector<'a, M> {
 
 }
 
-fn tile_selector<'a>(
+pub fn tile_selector<'a>(
     project: &'a Project,
     TilesState {
         palette_name,
@@ -117,48 +116,11 @@ fn tile_selector<'a>(
                     .height(height)
                     .into()
             })
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into(),
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into(),
         )
     } else {
         None
     }
-}
-
-pub fn character_map_selector<'a>(
-    project: &'a Project,
-    tiles_state @ TilesState {
-        palette_name,
-        character_data_name,
-        character_data_names,
-        palettes_names,
-        new_character_map_name,
-        ..
-    }: &'a TilesState,
-) -> Element<'a, Message> {
-    let mut input = column!(
-        row![
-            text_input("Character Map Name", &new_character_map_name).width(Length::FillPortion(5)),
-            button("Add")
-                .on_press(Message::AddCharacterMap)
-                .width(Length::FillPortion(1))
-        ],
-        combo_box(
-            character_data_names,
-            "Pick character map...",
-            character_data_name.into(),
-            Message::CharacterMapSelected
-        ),
-        combo_box(
-            palettes_names,
-            "Pick render palette...",
-            palette_name.into(),
-            Message::TilesRenderPaletteSelected
-        ),
-    );
-    if let Some(selector) = tile_selector(project, tiles_state) {
-        input = input.push(selector);
-    }
-    input.spacing(10).padding(10).into()
 }
