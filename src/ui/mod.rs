@@ -80,7 +80,7 @@ pub enum Message {
     NewPaletteNameChanged(String),
     PaletteClicked(Point<usize>),
     PaletteChanged(Color),
-    TileClicked(Point<usize>),
+    TileSelected(usize),
     PaletteSelected(String),
     AddPalette,
     AddCharacterMap,
@@ -161,7 +161,7 @@ pub fn update(state: &mut State, message: Message) {
             state.palette_state.location = point;
         }
         Message::PaletteChanged(color) => on_palette_changed(state, color),
-        Message::TileClicked(point) => state.tiles_state.location = point,
+        Message::TileSelected(selected) => state.tiles_state.selected_tile = selected,
         Message::NewPaletteNameChanged(name) => state.palette_state.new_palette_name = name,
         Message::PaletteSelected(name) => state.palette_state.palette_name = Some(name),
         Message::AddPalette => {

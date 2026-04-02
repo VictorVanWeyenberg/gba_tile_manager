@@ -5,14 +5,14 @@ use iced::advanced::image::{FilterMethod, Image};
 use iced::mouse::Cursor;
 use iced::widget::canvas::{Frame, Geometry, Program};
 use iced::widget::image::Handle;
-use iced::widget::{button, canvas, column, combo_box, responsive, row, scrollable, text_input};
-use iced::{Element, Length, Point, Rectangle, Renderer, Size, Theme};
+use iced::widget::{button, canvas, column, combo_box, responsive, row, scrollable, text_input, Action};
+use iced::{mouse, Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
 
 const TILE_ROW_N: usize = 4;
 
 pub struct TileSelector<'a, M> {
     tiles: Vec<Handle>,
-    message: Box<dyn Fn(Point<usize>) -> M>,
+    message: Box<dyn Fn(usize) -> M>,
     selected_tile: &'a usize,
     origin: Rectangle,
 }
@@ -28,6 +28,29 @@ impl<'a, M> TileSelector<'a, M> {
 
 impl<'a, M> Program<M> for TileSelector<'a, M> {
     type State = ();
+
+    fn update(&self, _state: &mut Self::State, event: &Event, bounds: Rectangle, cursor: Cursor) -> Option<Action<M>> {
+        if let Event::Mouse(mouse::Event::ButtonPressed(
+                                mouse::Button::Left,
+                            )) = event
+        {
+            if let Some(position) = cursor.position_in(bounds) {
+                let (width, height, side) = self.dimensions();
+                let x = position.x / bounds.width * width / side;
+                let y = position.y / bounds.height * height / side;
+                let index = TILE_ROW_N * y as usize + x as usize;
+                if index >= self.tiles.len() {
+                    None
+                } else {
+                    Some(Action::publish((self.message)(index)))
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
 
     fn draw(
         &self,
@@ -60,6 +83,8 @@ impl<'a, M> Program<M> for TileSelector<'a, M> {
 
         vec![frame.into_geometry()]
     }
+
+
 }
 
 fn tile_selector<'a>(
@@ -82,7 +107,7 @@ fn tile_selector<'a>(
             responsive(|size| {
                 let program = TileSelector {
                     tiles: character_data.render(palette),
-                    message: Box::new(Message::TileClicked),
+                    message: Box::new(Message::TileSelected),
                     selected_tile,
                     origin: Rectangle::new(Point::new(0f32, 0f32), size),
                 };
