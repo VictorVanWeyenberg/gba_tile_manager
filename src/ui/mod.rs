@@ -171,9 +171,7 @@ pub fn update(state: &mut State, message: Message) {
             state.tiles_state.palette_name = Some(name);
         },
         Message::TileColorSelected(selected) => state.tiles_state.selected_color = selected,
-        Message::TilesPixelSelected(selected) => {
-            state.tiles_state.selected_pixel = selected
-        },
+        Message::TilesPixelSelected(selected) => on_tile_pixel_changed(&mut state.project, &mut state.tiles_state, selected),
     }
 }
 
@@ -181,5 +179,14 @@ fn on_palette_changed(state: &mut State, color: Color) {
     if let Some(palette_name) = &state.palette_state.palette_name {
         let palette = state.project.palette_mut(&palette_name).unwrap();
         palette.set_color(*(&state.palette_state.selected_color), color)
+    }
+}
+
+fn on_tile_pixel_changed(project: &mut Project, tiles_state: &mut TilesState, selected: usize) {
+    tiles_state.selected_pixel = selected;
+    if let Some(character_data_name) = &tiles_state.character_data_name {
+        if let Some(character_data) = project.character_data_mut(&character_data_name) {
+            character_data[tiles_state.selected_tile][selected] = tiles_state.selected_color as u8
+        }
     }
 }
