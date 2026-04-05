@@ -1,8 +1,9 @@
 use crate::project::Project;
 use crate::ui::selector::selector;
 use crate::ui::{Message, TilesState};
-use iced::widget::{button, column, combo_box, row, space, text_input};
+use iced::widget::{button, column, combo_box, container, row, space, text_input};
 use iced::{Element, Length};
+use crate::ui::editor::editor;
 
 pub fn character_map_selector<'a>(
     project: &'a Project,
@@ -23,7 +24,8 @@ pub fn character_map_selector<'a>(
                 button("Add")
                     .on_press(Message::AddCharacterMap)
                     .width(Length::FillPortion(1))
-            ].spacing(10),
+            ]
+            .spacing(10),
             combo_box(
                 character_data_names,
                 "Pick character map...",
@@ -39,8 +41,10 @@ pub fn character_map_selector<'a>(
             tile_selector(project, tiles_state)
         )
         .spacing(10)
-        .padding(10),
-        palette_selector(project, tiles_state)
+        .padding(10)
+        .width(Length::FillPortion(5)),
+        container(palette_selector(project, tiles_state)).width(Length::FillPortion(1)),
+        container(create_tile_editor(project, tiles_state)).width(Length::FillPortion(14)),
     ]
     .spacing(10)
     .padding(10)
@@ -87,5 +91,28 @@ fn tile_selector<'a>(
             Some(character_data.render(palette))
         })
         .map(|tiles| selector(tiles, 4, selected_tile, Message::TileSelected))
+        .unwrap_or_else(|| space().width(Length::Fill).height(Length::Fill).into())
+}
+
+fn create_tile_editor<'a>(
+    project: &'a Project,
+    TilesState {
+        palette_name,
+        character_data_name,
+        selected_tile,
+        location,
+        ..
+    }: &'a TilesState,
+) -> Element<'a, Message> {
+    palette_name
+        .as_ref()
+        .zip(character_data_name.as_ref())
+        .and_then(|(palette_name, character_data_name)| {
+            let palette = project.palette(palette_name)?;
+            let character_data = project.character_data(character_data_name)?;
+            let tile = character_data.get(*selected_tile).unwrap();
+            let message = Message::TilesPixelSelected;
+            Some(editor(tile.render_with(palette), location, message, (8, 8)))
+        })
         .unwrap_or_else(|| space().width(Length::Fill).height(Length::Fill).into())
 }

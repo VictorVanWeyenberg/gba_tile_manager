@@ -1,10 +1,10 @@
+use crate::palette::Palette;
 use crate::project::Savable;
+use crate::render::render_tiles;
 use crate::tile::Tile;
+use iced::widget::image::Handle;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
-use iced::widget::image::Handle;
-use crate::palette::Palette;
-use crate::render::{render_tiles, ToHandle};
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct CharacterData {

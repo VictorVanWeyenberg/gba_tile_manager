@@ -1,7 +1,7 @@
-use std::ops::{Deref, DerefMut, Shl, Shr};
-use iced::advanced::image::Handle;
 use crate::palette::Palette;
-use crate::render::{render_tile, ToHandle};
+use crate::render::render_tile;
+use iced::advanced::image::Handle;
+use std::ops::{Deref, DerefMut, Shl, Shr};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Tile {

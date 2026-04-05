@@ -1,4 +1,4 @@
-use crate::render::{render_cursor, ToHandle};
+use crate::render::render_cursor;
 use iced::advanced::image::{FilterMethod, Handle, Image};
 use iced::mouse::{Cursor, ScrollDelta};
 use iced::widget::canvas::{Frame, Geometry, Program};

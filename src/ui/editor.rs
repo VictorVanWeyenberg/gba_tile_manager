@@ -1,18 +1,16 @@
-use crate::palette::Palette;
-use crate::render::{render_cursor, ToHandle};
-use crate::tile::Tile;
+use crate::render::render_cursor;
 use iced::advanced::image::FilterMethod;
 use iced::mouse::Cursor;
 use iced::widget::canvas::{Frame, Geometry, Image, Program};
 use iced::widget::image::Handle;
-use iced::widget::{responsive, Action, Canvas};
+use iced::widget::{Action, Canvas};
 use iced::{Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
 
 struct Editor<'a, M> {
     handle: Handle,
     location: &'a Point<usize>,
     message: Box<dyn Fn(Point<usize>) -> M>,
-    origin: Rectangle,
+    dimensions: (usize, usize),
 }
 
 impl<'a, M> Editor<'a, M> {
@@ -20,13 +18,13 @@ impl<'a, M> Editor<'a, M> {
         handle: Handle,
         location: &'a Point<usize>,
         message: impl Fn(Point<usize>) -> M + 'static,
-        origin: Rectangle,
+        dimensions: (usize, usize),
     ) -> Self {
         Self {
             handle,
             location,
             message: Box::new(message),
-            origin
+            dimensions,
         }
     }
 }
@@ -46,8 +44,8 @@ impl<'a, M> Program<M> for Editor<'a, M> {
         )) = event
         {
             if let Some(position) = cursor.position_in(bounds) {
-                let x = position.x / bounds.width * 16f32;
-                let y = position.y / bounds.height * 16f32;
+                let x = position.x / bounds.width * self.dimensions.0 as f32;
+                let y = position.y / bounds.height * self.dimensions.1 as f32;
                 return Some(Action::publish((self.message)(Point::new(
                     x as usize, y as usize,
                 ))));
@@ -65,15 +63,16 @@ impl<'a, M> Program<M> for Editor<'a, M> {
         _cursor: Cursor,
     ) -> Vec<Geometry<Renderer>> {
         let mut frame = Frame::new(renderer, bounds.size());
+        let side = bounds.width.min(bounds.height);
 
-        let indicator = render_cursor((16, 16), self.location.x, self.location.y).to_handle();
+        let indicator = render_cursor(self.dimensions, self.location.x, self.location.y).to_handle();
 
         frame.draw_image(
-            self.origin,
+            Rectangle::new(Point::new(0f32, 0f32), Size::new(side, side)),
             Image::new(self.handle.clone()).filter_method(FilterMethod::Nearest),
         );
         frame.draw_image(
-            self.origin,
+            Rectangle::new(Point::new(0f32, 0f32), Size::new(side, side)),
             Image::new(indicator).filter_method(FilterMethod::Nearest),
         );
 
@@ -81,56 +80,16 @@ impl<'a, M> Program<M> for Editor<'a, M> {
     }
 }
 
-pub fn palette_editor<'a, M>(
-    palette: &'a Palette,
+pub fn editor<'a, M>(
+    handle: Handle,
     location: &'a Point<usize>,
     message: impl Fn(Point<usize>) -> M + Copy + 'static,
+    dimensions: (usize, usize)
 ) -> Element<'a, M>
 where
     M: 'static,
 {
-
-    responsive(move |size| {
-        let size = size.width.min(size.height);
-        let origin = Rectangle::new(Point::ORIGIN, Size::new(size, size));
-        Canvas::new(Editor::new(
-            palette.render_square(),
-            location,
-            message,
-            origin,
-        ))
-            .width(size)
-            .height(size)
-            .into()
-    })
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into()
-}
-
-pub fn tile_editor<'a, M>(
-    palette: &'a Palette,
-    tile: &'a Tile,
-    location: &'a Point<usize>,
-    message: impl Fn(Point<usize>) -> M + Copy + 'static,
-) -> Element<'a, M>
-where
-    M: 'static,
-{
-
-    responsive(move |size| {
-        let size = size.width.min(size.height);
-        let origin = Rectangle::new(Point::ORIGIN, Size::new(size, size));
-        Canvas::new(Editor::new(
-            tile.render_with(palette),
-            location,
-            message,
-            origin,
-        ))
-            .width(size)
-            .height(size)
-            .into()
-    })
+    Canvas::new(Editor::new(handle, location, message, dimensions))
         .width(Length::Fill)
         .height(Length::Fill)
         .into()

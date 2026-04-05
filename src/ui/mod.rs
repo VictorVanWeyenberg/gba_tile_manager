@@ -1,12 +1,12 @@
 use crate::color::Color;
 use crate::palette::Palette;
 use crate::project::Project;
-use crate::ui::editor::palette_editor;
 use crate::ui::palette_view::{palette_input, palette_selector};
 use crate::ui::tile_view::character_map_selector;
 use iced::widget::{column, combo_box, row, Text};
 use iced::{Element, Point};
 use iced_aw::{TabLabel, Tabs};
+use crate::ui::editor::editor;
 
 mod editor;
 mod palette_view;
@@ -45,7 +45,8 @@ pub struct TilesState {
     character_data_names: combo_box::State<String>,
     palettes_names: combo_box::State<String>,
     new_character_map_name: String,
-    selected_color: usize
+    selected_color: usize,
+    location: Point<usize>,
 }
 
 impl TilesState {
@@ -57,7 +58,8 @@ impl TilesState {
             character_data_names: combo_box::State::new(project.character_data_names()),
             palettes_names: combo_box::State::new(project.palette_names()),
             new_character_map_name: "".to_string(),
-            selected_color: 0
+            selected_color: 0,
+            location: Default::default(),
         }
     }
 }
@@ -88,6 +90,7 @@ pub enum Message {
     CharacterMapSelected(String),
     TilesRenderPaletteSelected(String),
     TileColorSelected(usize),
+    TilesPixelSelected(Point<usize>),
 }
 
 #[derive(Clone, Default, Eq, PartialEq)]
@@ -139,7 +142,7 @@ fn palettes_view<'a>(
                     selector,
                     palette_input(selected_color)
                 ),
-                palette_editor(palette, location, Message::PaletteClicked)
+                editor(palette.render_square(), location, Message::PaletteClicked, (16, 16))
             }
         }
     }
@@ -192,6 +195,7 @@ pub fn update(state: &mut State, message: Message) {
             state.tiles_state.palette_name = Some(name);
         },
         Message::TileColorSelected(selected) => state.tiles_state.selected_color = selected,
+        Message::TilesPixelSelected(pixel) => state.tiles_state.location = pixel,
     }
 }
 

@@ -16,12 +16,8 @@ pub struct ImageData<'c> {
     pub transparent: bool,
 }
 
-pub trait ToHandle {
-    fn to_handle(&self) -> Handle;
-}
-
-impl<'c> ToHandle for ImageData<'c> {
-    fn to_handle(&self) -> Handle {
+impl<'c> ImageData<'c> {
+    pub(crate) fn to_handle(&self) -> Handle {
         image_data_to_handle(self)
     }
 }

@@ -1,6 +1,6 @@
 use crate::color::Color;
 use crate::project::Savable;
-use crate::render::{from_dimensions, ImageData, ToHandle};
+use crate::render::{from_dimensions, ImageData};
 use iced::widget::image::Handle;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
