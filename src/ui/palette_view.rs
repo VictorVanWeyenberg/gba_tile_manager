@@ -1,18 +1,21 @@
 use crate::color::Color;
+use crate::project::Project;
+use crate::ui::editor::editor;
 use crate::ui::{Message, PaletteState};
 use iced::widget::{Text, combo_box, container};
 use iced::widget::{button, column, grid, row, text_input};
 use iced::{Element, Length};
 use iced_aw::number_input;
 
-pub fn palette_selector(palette_state: &PaletteState) -> Element<'_, Message> {
+fn palette_selector(palette_state: &PaletteState) -> Element<'_, Message> {
     column!(
         row![
             text_input("Add Palette...", &palette_state.new_palette_name)
                 .on_input(Message::NewPaletteNameChanged)
                 .width(Length::FillPortion(5)),
             button("Add").on_press(Message::AddPalette)
-        ],
+        ]
+        .spacing(10),
         combo_box(
             &palette_state.palettes_names,
             "Select Palette...",
@@ -20,11 +23,11 @@ pub fn palette_selector(palette_state: &PaletteState) -> Element<'_, Message> {
             Message::PaletteSelected
         )
     )
-    .width(Length::Fixed(200f32))
+    .spacing(10)
     .into()
 }
 
-pub fn palette_input<'a>(selected_color: Option<&Color>) -> Element<'a, Message> {
+fn palette_input<'a>(selected_color: Option<&Color>) -> Element<'a, Message> {
     let (r, g, b) = if let Some(Color { r, g, b }) = selected_color {
         (r, g, b)
     } else {
@@ -46,8 +49,39 @@ pub fn palette_input<'a>(selected_color: Option<&Color>) -> Element<'a, Message>
             }).ignore_buttons(true),
         }
         .columns(2)
-        .height(Length::Shrink),
+        .height(Length::Shrink)
+        .spacing(10),
     )
-    .width(Length::Fixed(200f32))
+    .into()
+}
+
+pub fn palette_view<'a>(
+    project: &'a Project,
+    palette_state: &'a PaletteState,
+) -> Element<'a, Message> {
+    let PaletteState {
+        palette_name,
+        location,
+        ..
+    } = palette_state;
+    let selector = palette_selector(palette_state);
+    match palette_name {
+        None => row![selector,].spacing(10),
+        Some(palette_name) => {
+            let palette = project.palette(palette_name).unwrap();
+            let selected_color = palette.get(location.y * 16 + location.x);
+            row! {
+                column!(
+                    selector,
+                    palette_input(selected_color)
+                ).spacing(10)
+                .width(Length::FillPortion(1)),
+                container(editor(palette.render_square(), location, Message::PaletteClicked, (16, 16))).width(Length::FillPortion(5))
+            }
+            .spacing(10)
+        }
+    }
+    .spacing(10)
+    .padding(10)
     .into()
 }

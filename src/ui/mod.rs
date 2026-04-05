@@ -1,12 +1,11 @@
 use crate::color::Color;
 use crate::palette::Palette;
 use crate::project::Project;
-use crate::ui::palette_view::{palette_input, palette_selector};
+use crate::ui::palette_view::palette_view;
 use crate::ui::tile_view::character_map_selector;
-use iced::widget::{column, combo_box, row, Text};
+use iced::widget::{combo_box, Text};
 use iced::{Element, Point};
 use iced_aw::{TabLabel, Tabs};
-use crate::ui::editor::editor;
 
 mod editor;
 mod palette_view;
@@ -126,29 +125,7 @@ fn palettes_view<'a>(
     project: &'a Project,
     palette_state: &'a PaletteState,
 ) -> Element<'a, Message> {
-    let PaletteState {
-        palette_name,
-        location,
-        ..
-    } = palette_state;
-    let selector = palette_selector(palette_state);
-    match palette_name {
-        None => row![selector,],
-        Some(palette_name) => {
-            let palette = project.palette(palette_name).unwrap();
-            let selected_color = palette.get(location.y * 16 + location.x);
-            row! {
-                column!(
-                    selector,
-                    palette_input(selected_color)
-                ),
-                editor(palette.render_square(), location, Message::PaletteClicked, (16, 16))
-            }
-        }
-    }
-    .spacing(10)
-    .padding(10)
-    .into()
+    palette_view(project, palette_state)
 }
 
 fn tiles_view<'a>(project: &'a Project, tiles_state: &'a TilesState) -> Element<'a, Message> {
