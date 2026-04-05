@@ -5,10 +5,15 @@ use iced::widget::image::Handle;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
 
+const CURSOR_PALETTE_NAME: &str = "CURSOR_PALETTE";
+
 #[derive(Debug, Eq, PartialEq)]
-pub struct Palette {
-    name: String,
-    colors: Vec<Color>,
+pub enum Palette {
+    Cursor,
+    Gba {
+        name: String,
+        colors: Vec<Color>,
+    }
 }
 
 impl Palette {
@@ -17,15 +22,19 @@ impl Palette {
     }
 
     pub fn with_colors(name: impl ToString, colors: Vec<Color>) -> Self {
-        Self { name: name.to_string(), colors }
+        Self::Gba { name: name.to_string(), colors }
     }
 
     pub fn set_color(&mut self, index: usize, color: Color) {
-        while index >= self.colors.len() {
-            self.colors.push(Color::black())
-        }
+        if let Self::Gba {
+            colors, ..
+        } = self {
+            while index >= colors.len() {
+                colors.push(Color::black())
+            }
 
-        self.colors[index] = color
+            colors[index] = color
+        }
     }
 
     pub fn render_square(&self) -> Handle {
@@ -33,16 +42,22 @@ impl Palette {
     }
 
     pub fn render_colors(&self) -> Vec<Handle> {
-        (0..self.colors.len())
-            .map(|idx| {
-                ImageData::<'_> {
-                    palette: self,
-                    data: vec![idx as u8],
-                    dimensions: (1, 1),
-                    transparent: false,
-                }.to_handle()
-            })
-            .collect()
+        if let Self::Gba {
+            colors, ..
+        } = self {
+            (0..colors.len())
+                .map(|idx| {
+                    ImageData::<'_> {
+                        palette: self,
+                        data: vec![idx as u8],
+                        dimensions: (1, 1),
+                        transparent: false,
+                    }.to_handle()
+                })
+                .collect()
+        } else {
+            vec![]
+        }
     }
 
     fn render_with_dimensions(&self, dimensions: (usize, usize)) -> Handle {
@@ -62,19 +77,31 @@ impl Deref for Palette {
     type Target = Vec<Color>;
 
     fn deref(&self) -> &Self::Target {
-        &self.colors
+        if let Self::Gba { colors, .. } = self {
+            colors
+        } else {
+            panic!("Dereferencing a static palette.")
+        }
     }
 }
 
 impl DerefMut for Palette {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.colors
+        if let Self::Gba { colors, .. } = self {
+            colors
+        } else {
+            panic!("Dereferencing a static palette.")
+        }
     }
 }
 
 impl Savable for Palette {
-    fn name(&self) -> &String {
-        &self.name
+    fn name(&self) -> &str {
+        if let Self::Gba { name, .. } = self {
+            name
+        } else {
+            CURSOR_PALETTE_NAME
+        }
     }
 
     fn suffix() -> &'static str {
@@ -91,7 +118,7 @@ impl Savable for Palette {
     }
 
     fn as_data(&self) -> Vec<u8> {
-        self.colors.iter()
+        self.iter()
             .map(|c| -> [u8; 2] { c.into() })
             .flatten()
             .collect()

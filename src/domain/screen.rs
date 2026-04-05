@@ -19,7 +19,7 @@ impl ScreenData {
 }
 
 impl Savable for ScreenData {
-    fn name(&self) -> &String {
+    fn name(&self) -> &str {
         &self.name
     }
 

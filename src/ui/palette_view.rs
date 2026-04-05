@@ -5,7 +5,7 @@ use iced::widget::{button, column, grid, row, text_input};
 use iced::{Element, Length};
 use iced_aw::number_input;
 
-pub fn palette_selector(palette_state: &PaletteState) -> Element<Message> {
+pub fn palette_selector(palette_state: &PaletteState) -> Element<'_, Message> {
     column!(
         row![
             text_input("Add Palette...", &palette_state.new_palette_name)

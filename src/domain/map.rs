@@ -42,7 +42,7 @@ impl DerefMut for CharacterData {
 }
 
 impl Savable for CharacterData {
-    fn name(&self) -> &String {
+    fn name(&self) -> &str {
         &self.name
     }
 

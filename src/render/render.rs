@@ -1,4 +1,3 @@
-use crate::color::Color;
 use crate::map::CharacterData;
 use crate::palette::Palette;
 use crate::render::ImageData;
@@ -8,8 +7,7 @@ use lazy_static::lazy_static;
 
 pub const DIM_CURSOR: usize = 8;
 lazy_static! {
-    static ref CURSOR_PALETTE: Palette =
-        Palette::with_colors("cursor palette", vec![Color::black(), Color::new(0, 31, 31).unwrap(),]);
+    static ref CURSOR_PALETTE: Palette = Palette::Cursor;
 }
 
 pub fn from_dimensions((width, height): &(usize, usize), map: impl Fn(usize) -> u8) -> Vec<u8> {
@@ -21,16 +19,6 @@ pub fn render_tiles<'c>(palette: &'c Palette, tile_map: &CharacterData) -> Vec<I
         .iter()
         .map(|tile| render_tile(palette, tile))
         .collect()
-}
-
-pub fn scaled_palette_index(
-    factor: usize,
-    pixel_index: usize,
-    (width, height): &(usize, usize),
-) -> usize {
-    let row = pixel_index / (height * factor);
-    let column = (pixel_index % width) / factor;
-    row * factor + column
 }
 
 pub fn render_tile<'c>(palette: &'c Palette, tile: &Tile) -> ImageData<'c> {

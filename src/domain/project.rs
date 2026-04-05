@@ -10,7 +10,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 pub trait Savable: Sized {
-    fn name(&self) -> &String;
+    fn name(&self) -> &str;
     fn suffix() -> &'static str;
     fn create<R: Read>(name: impl ToString, data: R) -> Self;
     fn as_data(&self) -> Vec<u8>;
