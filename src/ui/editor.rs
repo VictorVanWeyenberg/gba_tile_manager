@@ -1,5 +1,5 @@
 use crate::palette::Palette;
-use crate::render::render_cursor;
+use crate::render::{render_cursor, ToHandle};
 use crate::tile::Tile;
 use iced::advanced::image::FilterMethod;
 use iced::mouse::Cursor;

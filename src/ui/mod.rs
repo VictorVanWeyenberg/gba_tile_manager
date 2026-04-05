@@ -2,16 +2,15 @@ use crate::color::Color;
 use crate::palette::Palette;
 use crate::project::Project;
 use crate::ui::editor::palette_editor;
-use crate::ui::palette_input::{palette_input, palette_selector};
-use iced::widget::{Text, column, combo_box, row};
+use crate::ui::palette_view::{palette_input, palette_selector};
+use crate::ui::tile_view::character_map_selector;
+use iced::widget::{column, combo_box, row, Text};
 use iced::{Element, Point};
 use iced_aw::{TabLabel, Tabs};
-use crate::ui::tile_view::character_map_selector;
 
 mod editor;
-mod palette_input;
-mod palette_selector;
-mod tile_selector;
+mod palette_view;
+mod selector;
 mod tile_view;
 
 pub struct State {
@@ -99,7 +98,7 @@ pub enum TabId {
     Screens,
 }
 
-pub fn view(state: &State) -> Element<Message> {
+pub fn view(state: &State) -> Element<'_, Message> {
     Tabs::new(Message::TabSelected)
         .push(
             TabId::Palettes,
