@@ -32,8 +32,17 @@ impl Palette {
         self.render_with_dimensions((16, 16))
     }
 
-    pub fn render_vertical(&self) -> Handle {
-        self.render_with_dimensions((1, 16 * 16))
+    pub fn render_colors(&self) -> Vec<Handle> {
+        (0..self.colors.len())
+            .map(|idx| {
+                ImageData::<'_> {
+                    palette: self,
+                    data: vec![idx as u8],
+                    dimensions: (1, 1),
+                    transparent: false,
+                }.to_handle()
+            })
+            .collect()
     }
 
     fn render_with_dimensions(&self, dimensions: (usize, usize)) -> Handle {

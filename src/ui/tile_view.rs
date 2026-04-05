@@ -60,7 +60,7 @@ fn palette_selector<'a>(
         .and_then(|name| project.palette(name))
         .map(|palette| {
             selector(
-                vec![palette.render_vertical()],
+                palette.render_colors(),
                 1,
                 selected_color,
                 Message::TileColorSelected,

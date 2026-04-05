@@ -183,8 +183,14 @@ pub fn update(state: &mut State, message: Message) {
             state.tiles_state.character_data_names =
                 combo_box::State::new(state.project.character_data_names())
         }
-        Message::CharacterMapSelected(name) => state.tiles_state.character_data_name = Some(name),
-        Message::TilesRenderPaletteSelected(name) => state.tiles_state.palette_name = Some(name),
+        Message::CharacterMapSelected(name) => {
+            state.tiles_state.selected_tile = 0;
+            state.tiles_state.character_data_name = Some(name);
+        },
+        Message::TilesRenderPaletteSelected(name) => {
+            state.tiles_state.selected_color = 0;
+            state.tiles_state.palette_name = Some(name);
+        },
         Message::TileColorSelected(selected) => state.tiles_state.selected_color = selected,
     }
 }
