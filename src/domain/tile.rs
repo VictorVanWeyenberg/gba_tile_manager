@@ -8,6 +8,12 @@ pub struct Tile {
     palette_indexes: [u8; 64] // Linear
 }
 
+impl Default for Tile {
+    fn default() -> Self {
+        Tile::new([0; 64])
+    }
+}
+
 impl Tile {
     pub fn new(palette_indexes: [u8; 64]) -> Self {
         Self { palette_indexes }

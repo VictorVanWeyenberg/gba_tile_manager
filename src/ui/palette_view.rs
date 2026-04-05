@@ -1,9 +1,9 @@
 use crate::color::Color;
 use crate::project::Project;
 use crate::ui::editor::editor;
-use crate::ui::{Message, PaletteState};
-use iced::widget::{Text, combo_box, container};
+use crate::ui::{Message, PaletteMessage, PaletteState};
 use iced::widget::{button, column, grid, row, text_input};
+use iced::widget::{combo_box, container, Text};
 use iced::{Element, Length};
 use iced_aw::number_input;
 
@@ -11,16 +11,16 @@ fn palette_selector(palette_state: &PaletteState) -> Element<'_, Message> {
     column!(
         row![
             text_input("Add Palette...", &palette_state.new_palette_name)
-                .on_input(Message::NewPaletteNameChanged)
+                .on_input(|name| Message::Palette(PaletteMessage::NewPaletteNameChanged(name)))
                 .width(Length::FillPortion(5)),
-            button("Add").on_press(Message::AddPalette)
+            button("Add").on_press(Message::Palette(PaletteMessage::AddPalette))
         ]
         .spacing(10),
         combo_box(
             &palette_state.palettes_names,
             "Select Palette...",
             palette_state.palette_name.as_ref(),
-            Message::PaletteSelected
+            |name| Message::Palette(PaletteMessage::PaletteSelected(name))
         )
     )
     .spacing(10)
@@ -39,13 +39,13 @@ fn palette_input<'a>(selected_color: Option<&Color>) -> Element<'a, Message> {
     container(
         grid! {
             Text::new("Red"), number_input(r, 0..32, move |r| {
-                Message::PaletteChanged(Color::new(r, gg, bb).unwrap())
+                Message::Palette(PaletteMessage::PaletteChanged(Color::new(r, gg, bb).unwrap()))
             }).ignore_buttons(true),
             Text::new("Green"), number_input(g, 0..32, move |g| {
-                Message::PaletteChanged(Color::new(rr, g, bb).unwrap())
+                Message::Palette(PaletteMessage::PaletteChanged(Color::new(rr, g, bb).unwrap()))
             }).ignore_buttons(true),
             Text::new("Blue"), number_input(b, 0..32, move |b| {
-                Message::PaletteChanged(Color::new(rr, gg, b).unwrap())
+                Message::Palette(PaletteMessage::PaletteChanged(Color::new(rr, gg, b).unwrap()))
             }).ignore_buttons(true),
         }
         .columns(2)
@@ -76,7 +76,7 @@ pub fn palette_view<'a>(
                     palette_input(color)
                 ).spacing(10)
                 .width(Length::FillPortion(1)),
-                container(editor(palette.render_square(), *selected_color, Message::PaletteClicked, (16, 16))).width(Length::FillPortion(5))
+                container(editor(palette.render_square(), *selected_color, |selected| Message::Palette(PaletteMessage::PaletteClicked(selected)), (16, 16))).width(Length::FillPortion(5))
             }
             .spacing(10)
         }

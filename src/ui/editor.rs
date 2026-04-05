@@ -43,11 +43,14 @@ impl<M> Program<M> for Editor<M> {
             iced::advanced::mouse::Button::Left,
         )) = event
         {
-            if let Some(position) = cursor.position_in(bounds) {
-                let side = bounds.width.min(bounds.height);
+            let side = bounds.width.min(bounds.height);
+            let editor_bounds =
+                Rectangle::new(Point::new(bounds.x, bounds.y), Size::new(side, side));
+            if let Some(position) = cursor.position_in(editor_bounds) {
                 let x = (position.x / side * self.dimensions.0 as f32) as usize;
                 let y = (position.y / side * self.dimensions.1 as f32) as usize;
-                return Some(Action::publish((self.message)(y * self.dimensions.0 + x)));
+                let idx = y * self.dimensions.0 + x;
+                return Some(Action::publish((self.message)(idx)));
             }
         }
         None
@@ -85,7 +88,7 @@ pub fn editor<'a, M>(
     handle: Handle,
     selected: usize,
     message: impl Fn(usize) -> M + Copy + 'static,
-    dimensions: (usize, usize)
+    dimensions: (usize, usize),
 ) -> Element<'a, M>
 where
     M: 'static,

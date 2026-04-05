@@ -2,8 +2,8 @@ use crate::render::render_cursor;
 use iced::advanced::image::{FilterMethod, Handle, Image};
 use iced::mouse::{Cursor, ScrollDelta};
 use iced::widget::canvas::{Frame, Geometry, Program};
-use iced::widget::{canvas, Action};
-use iced::{mouse, Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
+use iced::widget::{Action, canvas, space};
+use iced::{Element, Event, Length, Point, Rectangle, Renderer, Size, Theme, mouse};
 use std::ops::Add;
 
 struct Selector<'a, M> {
@@ -46,13 +46,9 @@ impl<'a, M> Program<M> for Selector<'a, M> {
                 let x = position.x / width * self.columns as f32;
                 let y = (position.y - *state) / height * self.rows() as f32;
                 let index = self.columns * y as usize + x as usize;
-                if index >= self.images.len() {
-                    None
-                } else {
-                    Some(Action::publish((self.message)(index)))
+                if index < self.images.len() {
+                    return Some(Action::publish((self.message)(index)))
                 }
-            } else {
-                None
             }
         } else if let Event::Mouse(mouse::Event::WheelScrolled { delta }) = event {
             if cursor.position_in(bounds).is_some() {
@@ -63,13 +59,10 @@ impl<'a, M> Program<M> for Selector<'a, M> {
                     })
                     .min(0f32)
                     .max(side - height);
-                Some(Action::request_redraw())
-            } else {
-                None
+                return Some(Action::request_redraw())
             }
-        } else {
-            None
         }
+        None
     }
 
     fn draw(
@@ -117,13 +110,17 @@ pub fn selector<'a, M: 'a>(
     selected: &'a usize,
     message: impl Fn(usize) -> M + 'static,
 ) -> Element<'a, M> {
-    canvas(Selector {
-        images,
-        message: Box::new(message),
-        selected,
-        columns,
-    })
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .into()
+    if images.is_empty() {
+        space().width(Length::Fill).height(Length::Fill).into()
+    } else {
+        canvas(Selector {
+            images,
+            message: Box::new(message),
+            selected,
+            columns,
+        })
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
+    }
 }
