@@ -28,8 +28,15 @@ impl Palette {
         self.colors[index] = color
     }
 
-    pub fn render(&self) -> Handle {
-        let dimensions = (16, 16);
+    pub fn render_square(&self) -> Handle {
+        self.render_with_dimensions((16, 16))
+    }
+
+    pub fn render_vertical(&self) -> Handle {
+        self.render_with_dimensions((1, 16 * 16))
+    }
+
+    fn render_with_dimensions(&self, dimensions: (usize, usize)) -> Handle {
         let data = from_dimensions(&dimensions, |idx| {
             if idx < self.len() { idx as u8 } else { 0u8 }
         });

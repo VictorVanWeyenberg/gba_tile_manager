@@ -94,7 +94,7 @@ where
         let size = size.width.min(size.height);
         let origin = Rectangle::new(Point::ORIGIN, Size::new(size, size));
         Canvas::new(Editor::new(
-            palette.render(),
+            palette.render_square(),
             location,
             message,
             origin,

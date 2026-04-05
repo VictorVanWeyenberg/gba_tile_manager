@@ -10,6 +10,7 @@ use crate::ui::tile_view::character_map_selector;
 
 mod editor;
 mod palette_input;
+mod palette_selector;
 mod tile_selector;
 mod tile_view;
 
@@ -44,8 +45,8 @@ pub struct TilesState {
     selected_tile: usize,
     character_data_names: combo_box::State<String>,
     palettes_names: combo_box::State<String>,
-    location: Point<usize>,
     new_character_map_name: String,
+    selected_color: usize
 }
 
 impl TilesState {
@@ -56,8 +57,8 @@ impl TilesState {
             selected_tile: 0,
             character_data_names: combo_box::State::new(project.character_data_names()),
             palettes_names: combo_box::State::new(project.palette_names()),
-            location: Default::default(),
             new_character_map_name: "".to_string(),
+            selected_color: 0
         }
     }
 }
@@ -87,6 +88,7 @@ pub enum Message {
     AddCharacterMap,
     CharacterMapSelected(String),
     TilesRenderPaletteSelected(String),
+    TileColorSelected(usize),
 }
 
 #[derive(Clone, Default, Eq, PartialEq)]
@@ -184,6 +186,7 @@ pub fn update(state: &mut State, message: Message) {
         }
         Message::CharacterMapSelected(name) => state.tiles_state.character_data_name = Some(name),
         Message::TilesRenderPaletteSelected(name) => state.tiles_state.palette_name = Some(name),
+        Message::TileColorSelected(selected) => state.tiles_state.selected_color = selected,
     }
 }
 

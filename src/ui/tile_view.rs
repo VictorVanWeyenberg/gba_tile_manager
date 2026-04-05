@@ -2,6 +2,7 @@ use crate::project::Project;
 use crate::ui::{Message, TilesState};
 use iced::widget::{button, column, combo_box, row, text_input};
 use iced::{Element, Length};
+use crate::ui::palette_selector::palette_selector;
 use crate::ui::tile_selector::tile_selector;
 
 pub fn character_map_selector<'a>(
@@ -36,6 +37,13 @@ pub fn character_map_selector<'a>(
         ),
     );
     if let Some(selector) = tile_selector(project, tiles_state) {
+        input = input.push(selector);
+    }
+    let input = input.spacing(10).padding(10);
+    let mut input = row![
+        input,
+    ];
+    if let Some(selector) = palette_selector(project, tiles_state) {
         input = input.push(selector);
     }
     input.spacing(10).padding(10).into()
