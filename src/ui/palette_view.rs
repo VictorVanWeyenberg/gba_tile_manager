@@ -61,7 +61,7 @@ pub fn palette_view<'a>(
 ) -> Element<'a, Message> {
     let PaletteState {
         palette_name,
-        location,
+        selected_color,
         ..
     } = palette_state;
     let selector = palette_selector(palette_state);
@@ -69,14 +69,14 @@ pub fn palette_view<'a>(
         None => row![selector,].spacing(10),
         Some(palette_name) => {
             let palette = project.palette(palette_name).unwrap();
-            let selected_color = palette.get(location.y * 16 + location.x);
+            let color = palette.get(*selected_color);
             row! {
                 column!(
                     selector,
-                    palette_input(selected_color)
+                    palette_input(color)
                 ).spacing(10)
                 .width(Length::FillPortion(1)),
-                container(editor(palette.render_square(), location, Message::PaletteClicked, (16, 16))).width(Length::FillPortion(5))
+                container(editor(palette.render_square(), *selected_color, Message::PaletteClicked, (16, 16))).width(Length::FillPortion(5))
             }
             .spacing(10)
         }

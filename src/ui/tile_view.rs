@@ -20,7 +20,7 @@ pub fn character_map_selector<'a>(
         column!(
             row![
                 text_input("Character Map Name", &new_character_map_name)
-                    .width(Length::FillPortion(5)),
+                    .width(Length::FillPortion(3)),
                 button("Add")
                     .on_press(Message::AddCharacterMap)
                     .width(Length::FillPortion(1))
@@ -100,7 +100,7 @@ fn create_tile_editor<'a>(
         palette_name,
         character_data_name,
         selected_tile,
-        location,
+        selected_pixel,
         ..
     }: &'a TilesState,
 ) -> Element<'a, Message> {
@@ -112,7 +112,7 @@ fn create_tile_editor<'a>(
             let character_data = project.character_data(character_data_name)?;
             let tile = character_data.get(*selected_tile).unwrap();
             let message = Message::TilesPixelSelected;
-            Some(editor(tile.render_with(palette), location, message, (8, 8)))
+            Some(editor(tile.render_with(palette), *selected_pixel, message, (8, 8)))
         })
         .unwrap_or_else(|| space().width(Length::Fill).height(Length::Fill).into())
 }

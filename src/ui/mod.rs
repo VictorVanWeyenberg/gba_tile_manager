@@ -1,10 +1,9 @@
 use crate::color::Color;
-use crate::palette::Palette;
 use crate::project::Project;
 use crate::ui::palette_view::palette_view;
 use crate::ui::tile_view::character_map_selector;
 use iced::widget::{combo_box, Text};
-use iced::{Element, Point};
+use iced::Element;
 use iced_aw::{TabLabel, Tabs};
 
 mod editor;
@@ -23,7 +22,7 @@ pub struct PaletteState {
     palette_name: Option<String>,
     new_palette_name: String,
     palettes_names: combo_box::State<String>,
-    location: Point<usize>,
+    selected_color: usize,
 }
 
 impl PaletteState {
@@ -32,7 +31,7 @@ impl PaletteState {
             palette_name: None,
             new_palette_name: "".to_string(),
             palettes_names: combo_box::State::new(project.palette_names()),
-            location: Default::default(),
+            selected_color: Default::default(),
         }
     }
 }
@@ -45,7 +44,7 @@ pub struct TilesState {
     palettes_names: combo_box::State<String>,
     new_character_map_name: String,
     selected_color: usize,
-    location: Point<usize>,
+    selected_pixel: usize,
 }
 
 impl TilesState {
@@ -58,7 +57,7 @@ impl TilesState {
             palettes_names: combo_box::State::new(project.palette_names()),
             new_character_map_name: "".to_string(),
             selected_color: 0,
-            location: Default::default(),
+            selected_pixel: 0,
         }
     }
 }
@@ -80,7 +79,7 @@ impl State {
 pub enum Message {
     TabSelected(TabId),
     NewPaletteNameChanged(String),
-    PaletteClicked(Point<usize>),
+    PaletteClicked(usize),
     PaletteChanged(Color),
     TileSelected(usize),
     PaletteSelected(String),
@@ -89,7 +88,7 @@ pub enum Message {
     CharacterMapSelected(String),
     TilesRenderPaletteSelected(String),
     TileColorSelected(usize),
-    TilesPixelSelected(Point<usize>),
+    TilesPixelSelected(usize),
 }
 
 #[derive(Clone, Default, Eq, PartialEq)]
@@ -140,7 +139,7 @@ pub fn update(state: &mut State, message: Message) {
     match message {
         Message::TabSelected(tab_id) => state.selected_tab = tab_id,
         Message::PaletteClicked(point) => {
-            state.palette_state.location = point;
+            state.palette_state.selected_color = point;
         }
         Message::PaletteChanged(color) => on_palette_changed(state, color),
         Message::TileSelected(selected) => state.tiles_state.selected_tile = selected,
@@ -172,20 +171,15 @@ pub fn update(state: &mut State, message: Message) {
             state.tiles_state.palette_name = Some(name);
         },
         Message::TileColorSelected(selected) => state.tiles_state.selected_color = selected,
-        Message::TilesPixelSelected(pixel) => state.tiles_state.location = pixel,
+        Message::TilesPixelSelected(selected) => {
+            state.tiles_state.selected_pixel = selected
+        },
     }
 }
 
 fn on_palette_changed(state: &mut State, color: Color) {
     if let Some(palette_name) = &state.palette_state.palette_name {
-        let project = &mut state.project;
-        let point = &state.palette_state.location;
-        let palette = project.palette_mut(&palette_name).unwrap();
-        set_palette_color_at_point(palette, point, color)
+        let palette = state.project.palette_mut(&palette_name).unwrap();
+        palette.set_color(*(&state.palette_state.selected_color), color)
     }
-}
-
-fn set_palette_color_at_point(palette: &mut Palette, point: &Point<usize>, color: Color) {
-    let index = point.y * 16 + point.x;
-    palette.set_color(index, color)
 }

@@ -6,30 +6,30 @@ use iced::widget::image::Handle;
 use iced::widget::{Action, Canvas};
 use iced::{Element, Event, Length, Point, Rectangle, Renderer, Size, Theme};
 
-struct Editor<'a, M> {
+struct Editor<M> {
     handle: Handle,
-    location: &'a Point<usize>,
-    message: Box<dyn Fn(Point<usize>) -> M>,
+    selected: usize,
+    message: Box<dyn Fn(usize) -> M>,
     dimensions: (usize, usize),
 }
 
-impl<'a, M> Editor<'a, M> {
+impl<M> Editor<M> {
     pub fn new(
         handle: Handle,
-        location: &'a Point<usize>,
-        message: impl Fn(Point<usize>) -> M + 'static,
+        selected: usize,
+        message: impl Fn(usize) -> M + 'static,
         dimensions: (usize, usize),
     ) -> Self {
         Self {
             handle,
-            location,
+            selected,
             message: Box::new(message),
             dimensions,
         }
     }
 }
 
-impl<'a, M> Program<M> for Editor<'a, M> {
+impl<M> Program<M> for Editor<M> {
     type State = ();
 
     fn update(
@@ -44,11 +44,10 @@ impl<'a, M> Program<M> for Editor<'a, M> {
         )) = event
         {
             if let Some(position) = cursor.position_in(bounds) {
-                let x = position.x / bounds.width * self.dimensions.0 as f32;
-                let y = position.y / bounds.height * self.dimensions.1 as f32;
-                return Some(Action::publish((self.message)(Point::new(
-                    x as usize, y as usize,
-                ))));
+                let side = bounds.width.min(bounds.height);
+                let x = (position.x / side * self.dimensions.0 as f32) as usize;
+                let y = (position.y / side * self.dimensions.1 as f32) as usize;
+                return Some(Action::publish((self.message)(y * self.dimensions.0 + x)));
             }
         }
         None
@@ -65,7 +64,9 @@ impl<'a, M> Program<M> for Editor<'a, M> {
         let mut frame = Frame::new(renderer, bounds.size());
         let side = bounds.width.min(bounds.height);
 
-        let indicator = render_cursor(self.dimensions, self.location.x, self.location.y).to_handle();
+        let x = self.selected % self.dimensions.0;
+        let y = self.selected / self.dimensions.0;
+        let indicator = render_cursor(self.dimensions, x, y).to_handle();
 
         frame.draw_image(
             Rectangle::new(Point::new(0f32, 0f32), Size::new(side, side)),
@@ -82,14 +83,14 @@ impl<'a, M> Program<M> for Editor<'a, M> {
 
 pub fn editor<'a, M>(
     handle: Handle,
-    location: &'a Point<usize>,
-    message: impl Fn(Point<usize>) -> M + Copy + 'static,
+    selected: usize,
+    message: impl Fn(usize) -> M + Copy + 'static,
     dimensions: (usize, usize)
 ) -> Element<'a, M>
 where
     M: 'static,
 {
-    Canvas::new(Editor::new(handle, location, message, dimensions))
+    Canvas::new(Editor::new(handle, selected, message, dimensions))
         .width(Length::Fill)
         .height(Length::Fill)
         .into()
