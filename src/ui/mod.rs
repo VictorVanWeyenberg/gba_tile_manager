@@ -1,6 +1,5 @@
 use crate::color::Color;
 use crate::project::Project;
-use crate::tile::Tile;
 use crate::ui::palette_view::palette_view;
 use crate::ui::tile_view::character_map_selector;
 use iced::Element;
@@ -153,114 +152,18 @@ fn screens_view(_: &State) -> Element<'_, Message> {
 
 pub fn update(state: &mut State, message: Message) {
     match message {
-        Message::TabSelected(tab_id) => state.selected_tab = tab_id,
-        Message::Palette(message) => handle_palette_message(state, message),
-        Message::Tile(message) => handle_tile_message(state, message),
+        Message::TabSelected(tab_id) => tab_selected(state, tab_id),
+        Message::Palette(message) => palette_view::handle_palette_message(state, message),
+        Message::Tile(message) => tile_view::handle_tile_message(state, message),
     }
 }
 
-fn handle_palette_message(state: &mut State, message: PaletteMessage) {
-    let State {
-        project,
-        palette_state,
-        ..
-    } = state;
-    match message {
-        PaletteMessage::NewPaletteNameChanged(name) => palette_state.new_palette_name = name,
-        PaletteMessage::PaletteClicked(selected) => palette_state.selected_color = selected,
-        PaletteMessage::PaletteChanged(color) => on_palette_changed(project, palette_state, color),
-        PaletteMessage::AddPalette => {
-            project.add_palette(&palette_state.new_palette_name);
-            palette_state.new_palette_name.clear();
-            palette_state.palettes_names = combo_box::State::new(state.project.palette_names());
+fn tab_selected(state: &mut State, tab_id: TabId) {
+    match tab_id {
+        TabId::Tiles => {
             state.tiles_state.palettes_names = combo_box::State::new(state.project.palette_names())
         }
-        PaletteMessage::PaletteSelected(name) => palette_state.palette_name = Some(name),
-    }
-}
-
-fn handle_tile_message(state: &mut State, message: TileMessage) {
-    let State {
-        project,
-        tiles_state,
-        ..
-    } = state;
-    match message {
-        TileMessage::CharacterMapSelected(name) => {
-            tiles_state.selected_tile = 0;
-            tiles_state.character_data_name = Some(name);
-        }
-        TileMessage::PaletteSelected(name) => {
-            tiles_state.selected_color = 0;
-            tiles_state.palette_name = Some(name);
-        }
-        TileMessage::TileSelected(selected) => tiles_state.selected_tile = selected,
-        TileMessage::ColorSelected(selected) => tiles_state.selected_color = selected,
-        TileMessage::PixelSelected(selected) => {
-            on_tile_pixel_changed(project, tiles_state, selected)
-        }
-        TileMessage::AddCharacterMap => {
-            project.add_character_data(&tiles_state.new_character_map_name);
-            tiles_state.new_character_map_name.clear();
-            tiles_state.character_data_names = combo_box::State::new(project.character_data_names())
-        }
-        TileMessage::NewCharacterMapNameChanged(name) => {
-            tiles_state.new_character_map_name = name;
-        }
-        TileMessage::AddTile => {
-            if let Some(name) = &tiles_state.character_data_name {
-                if let Some(character_data) = project.character_data_mut(name) {
-                    character_data.push(Tile::default())
-                }
-            }
-        }
-        TileMessage::RemoveTile => {
-            if let Some(name) = &tiles_state.character_data_name {
-                if let Some(character_data) = project.character_data_mut(name) {
-                    character_data.remove(tiles_state.selected_tile);
-                    if tiles_state.selected_tile >= character_data.len() {
-                        tiles_state.selected_tile = character_data.len() - 1;
-                    }
-                }
-            }
-        }
-        TileMessage::MoveTileUp => {
-            if let Some(name) = &tiles_state.character_data_name {
-                if let Some(character_data) = project.character_data_mut(name) {
-                    if tiles_state.selected_tile > 0 {
-                        character_data
-                            .swap(tiles_state.selected_tile, tiles_state.selected_tile - 1);
-                        tiles_state.selected_tile = tiles_state.selected_tile - 1;
-                    }
-                }
-            }
-        }
-        TileMessage::MoveTileDown => {
-            if let Some(name) = &tiles_state.character_data_name {
-                if let Some(character_data) = project.character_data_mut(name) {
-                    if tiles_state.selected_tile < character_data.len() - 1 {
-                        character_data
-                            .swap(tiles_state.selected_tile, tiles_state.selected_tile + 1);
-                        tiles_state.selected_tile = tiles_state.selected_tile + 1;
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn on_palette_changed(project: &mut Project, palette_state: &mut PaletteState, color: Color) {
-    if let Some(palette_name) = &palette_state.palette_name {
-        let palette = project.palette_mut(&palette_name).unwrap();
-        palette.set_color(*(&palette_state.selected_color), color)
-    }
-}
-
-fn on_tile_pixel_changed(project: &mut Project, tiles_state: &mut TilesState, selected: usize) {
-    tiles_state.selected_pixel = selected;
-    if let Some(character_data_name) = &tiles_state.character_data_name {
-        if let Some(character_data) = project.character_data_mut(&character_data_name) {
-            character_data[tiles_state.selected_tile][selected] = tiles_state.selected_color as u8
-        }
-    }
+        _ => {}
+    };
+    state.selected_tab = tab_id
 }

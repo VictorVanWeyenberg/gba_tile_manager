@@ -1,9 +1,10 @@
 use crate::project::Project;
 use crate::ui::editor::editor;
 use crate::ui::selector::selector;
-use crate::ui::{Message, TileMessage, TilesState};
+use crate::ui::{Message, State, TileMessage, TilesState};
 use iced::widget::{button, column, combo_box, container, row, space, text_input};
 use iced::{Element, Length};
+use crate::tile::Tile;
 
 pub fn character_map_selector<'a>(
     project: &'a Project,
@@ -129,4 +130,93 @@ fn tile_editor<'a>(
             ))
         })
         .unwrap_or_else(|| space().width(Length::Fill).height(Length::Fill).into())
+}
+
+pub fn handle_tile_message(state: &mut State, message: TileMessage) {
+    let State {
+        project,
+        tiles_state,
+        ..
+    } = state;
+    match message {
+        TileMessage::CharacterMapSelected(name) => character_map_selected(tiles_state, name),
+        TileMessage::PaletteSelected(name) => palette_selected(tiles_state, name),
+        TileMessage::TileSelected(selected) => tiles_state.selected_tile = selected,
+        TileMessage::ColorSelected(selected) => tiles_state.selected_color = selected,
+        TileMessage::PixelSelected(selected) => on_tile_pixel_changed(project, tiles_state, selected),
+        TileMessage::AddCharacterMap => add_character_map(project, tiles_state),
+        TileMessage::NewCharacterMapNameChanged(name) => tiles_state.new_character_map_name = name,
+        TileMessage::AddTile => add_tile(project, tiles_state),
+        TileMessage::RemoveTile => remove_tile(project, tiles_state),
+        TileMessage::MoveTileUp => move_tile_up(project, tiles_state),
+        TileMessage::MoveTileDown => move_tile_down(project, tiles_state),
+    }
+}
+
+fn move_tile_down(project: &mut Project, tiles_state: &mut TilesState) {
+    if let Some(name) = &tiles_state.character_data_name {
+        if let Some(character_data) = project.character_data_mut(name) {
+            if tiles_state.selected_tile < character_data.len() - 1 {
+                character_data
+                    .swap(tiles_state.selected_tile, tiles_state.selected_tile + 1);
+                tiles_state.selected_tile = tiles_state.selected_tile + 1;
+            }
+        }
+    }
+}
+
+fn move_tile_up(project: &mut Project, tiles_state: &mut TilesState) {
+    if let Some(name) = &tiles_state.character_data_name {
+        if let Some(character_data) = project.character_data_mut(name) {
+            if tiles_state.selected_tile > 0 {
+                character_data
+                    .swap(tiles_state.selected_tile, tiles_state.selected_tile - 1);
+                tiles_state.selected_tile = tiles_state.selected_tile - 1;
+            }
+        }
+    }
+}
+
+fn remove_tile(project: &mut Project, tiles_state: &mut TilesState) {
+    if let Some(name) = &tiles_state.character_data_name {
+        if let Some(character_data) = project.character_data_mut(name) {
+            character_data.remove(tiles_state.selected_tile);
+            if tiles_state.selected_tile >= character_data.len() {
+                tiles_state.selected_tile = character_data.len() - 1;
+            }
+        }
+    }
+}
+
+fn add_tile(project: &mut Project, tiles_state: &mut TilesState) {
+    if let Some(name) = &tiles_state.character_data_name {
+        if let Some(character_data) = project.character_data_mut(name) {
+            character_data.push(Tile::default())
+        }
+    }
+}
+
+fn add_character_map(project: &mut Project, tiles_state: &mut TilesState) {
+    project.add_character_data(&tiles_state.new_character_map_name);
+    tiles_state.new_character_map_name.clear();
+    tiles_state.character_data_names = combo_box::State::new(project.character_data_names())
+}
+
+fn palette_selected(tiles_state: &mut TilesState, name: String) {
+    tiles_state.selected_color = 0;
+    tiles_state.palette_name = Some(name);
+}
+
+fn character_map_selected(tiles_state: &mut TilesState, name: String) {
+    tiles_state.selected_tile = 0;
+    tiles_state.character_data_name = Some(name);
+}
+
+fn on_tile_pixel_changed(project: &mut Project, tiles_state: &mut TilesState, selected: usize) {
+    tiles_state.selected_pixel = selected;
+    if let Some(character_data_name) = &tiles_state.character_data_name {
+        if let Some(character_data) = project.character_data_mut(&character_data_name) {
+            character_data[tiles_state.selected_tile][selected] = tiles_state.selected_color as u8
+        }
+    }
 }
