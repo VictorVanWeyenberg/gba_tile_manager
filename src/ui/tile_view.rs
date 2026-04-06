@@ -6,7 +6,7 @@ use iced::widget::{button, column, combo_box, container, row, space, text_input}
 use iced::{Element, Length};
 use crate::tile::Tile;
 
-pub fn character_map_selector<'a>(
+pub fn tile_view<'a>(
     project: &'a Project,
     tiles_state @ TilesState {
         palette_name,
