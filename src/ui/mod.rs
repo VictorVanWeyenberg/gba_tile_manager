@@ -67,22 +67,32 @@ impl TilesState {
 
 pub struct ScreensState {
     new_screen_name: String,
-    selected_screen: usize,
-    palettes_names: combo_box::State<String>,
+    selected_tile: usize,
+    selected_character: usize,
+    screen_names: combo_box::State<String>,
     character_map_names: combo_box::State<String>,
-    selected_palette: Option<String>,
+    palettes_names: combo_box::State<String>,
+    selected_screen: Option<String>,
     selected_character_map: Option<String>,
+    selected_palette: Option<String>,
+    h_flip: bool,
+    v_flip: bool,
 }
 
 impl ScreensState {
     fn new(project: &Project) -> Self {
         Self {
             new_screen_name: "".to_string(),
-            selected_screen: 0,
-            palettes_names: combo_box::State::new(project.palette_names()),
+            selected_tile: 0,
+            selected_character: 0,
+            screen_names: combo_box::State::new(project.screen_names()),
             character_map_names: combo_box::State::new(project.character_data_names()),
-            selected_palette: None,
+            palettes_names: combo_box::State::new(project.palette_names()),
+            selected_screen: None,
             selected_character_map: None,
+            selected_palette: None,
+            h_flip: false,
+            v_flip: false,
         }
     }
 }
@@ -139,9 +149,14 @@ pub enum ScreenMessage {
     NewScreenNameChanged(String),
     CharacterMapSelected(String),
     PaletteSelected(String),
-    ScreenSelected(usize),
+    ScreenSelected(String),
+    TileSelected(usize),
+    ScreenClicked(usize),
+    Flipped {
+        h_flip: bool,
+        v_flip: bool,
+    },
     AddScreen,
-    RemoveScreen,
 }
 
 #[derive(Clone, Default, Eq, PartialEq)]
@@ -201,6 +216,10 @@ fn tab_selected(state: &mut State, tab_id: TabId) {
     match tab_id {
         TabId::Tiles => {
             state.tiles_state.palettes_names = combo_box::State::new(state.project.palette_names())
+        }
+        TabId::Screens => {
+            state.screens_state.palettes_names = combo_box::State::new(state.project.palette_names());
+            state.screens_state.character_map_names = combo_box::State::new(state.project.character_data_names())
         }
         _ => {}
     };

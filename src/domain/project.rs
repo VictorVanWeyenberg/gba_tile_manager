@@ -135,6 +135,16 @@ impl Project {
     pub fn screen_data_mut(&mut self, name: &str) -> Option<&mut ScreenData> {
         self.screen_maps.iter_mut().find(|map| map.name() == name)
     }
+
+    pub fn add_screen_data(&mut self, name: &str) {
+        self.screen_maps.push(ScreenData::new(name))
+    }
+
+    pub fn screen_names(&self) -> Vec<String> {
+        self.screen_maps.iter()
+            .map(|screen| screen.name().to_string())
+            .collect()
+    }
 }
 
 impl TryFrom<PathBuf> for Project {

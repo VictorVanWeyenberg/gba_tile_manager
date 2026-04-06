@@ -1,6 +1,10 @@
 use crate::character::Character;
+use crate::map::CharacterData;
 use crate::project::Savable;
 use std::io::Read;
+use iced::advanced::image::Handle;
+use crate::palette::Palette;
+use crate::render::render_screen;
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ScreenData {
@@ -9,12 +13,23 @@ pub struct ScreenData {
 }
 
 impl ScreenData {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            characters: [[Character::default(); 32]; 32],
+        }
+    }
+
     pub fn get_character(&self, x: usize, y: usize) -> &Character {
         &self.characters[y][x]
     }
 
     pub fn set_character(&mut self, character: Character, x: usize, y: usize) {
         self.characters[y][x] = character
+    }
+
+    pub fn render(&self, character_data: &CharacterData, palette: &Palette) -> Handle {
+        render_screen(palette, character_data, self).to_handle()
     }
 }
 
@@ -58,11 +73,11 @@ impl Savable for ScreenData {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-    use tempdir::TempDir;
     use crate::character::Character;
     use crate::project::Savable;
     use crate::screen::ScreenData;
+    use std::fs;
+    use tempdir::TempDir;
 
     #[test]
     fn screen_round_trip() {
