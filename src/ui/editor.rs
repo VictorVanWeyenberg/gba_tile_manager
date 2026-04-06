@@ -43,12 +43,10 @@ impl<M> Program<M> for Editor<M> {
             iced::advanced::mouse::Button::Left,
         )) = event
         {
-            let side = bounds.width.min(bounds.height);
-            let editor_bounds =
-                Rectangle::new(Point::new(bounds.x, bounds.y), Size::new(side, side));
-            if let Some(position) = cursor.position_in(editor_bounds) {
-                let x = (position.x / side * self.dimensions.0 as f32) as usize;
-                let y = (position.y / side * self.dimensions.1 as f32) as usize;
+            let editor_bounds = draw_dimensions(&bounds, &self.dimensions);
+            if let Some(position) = cursor.position_in(Rectangle::new(Point::new(bounds.x, bounds.y), editor_bounds)) {
+                let x = (position.x / editor_bounds.width * self.dimensions.0 as f32) as usize;
+                let y = (position.y / editor_bounds.height * self.dimensions.1 as f32) as usize;
                 let idx = y * self.dimensions.0 + x;
                 return Some(Action::publish((self.message)(idx)));
             }
@@ -65,23 +63,29 @@ impl<M> Program<M> for Editor<M> {
         _cursor: Cursor,
     ) -> Vec<Geometry<Renderer>> {
         let mut frame = Frame::new(renderer, bounds.size());
-        let side = bounds.width.min(bounds.height);
+        let Size { width, height } = draw_dimensions(&bounds, &self.dimensions);
 
         let x = self.selected % self.dimensions.0;
         let y = self.selected / self.dimensions.0;
         let indicator = render_cursor(self.dimensions, x, y).to_handle();
 
         frame.draw_image(
-            Rectangle::new(Point::new(0f32, 0f32), Size::new(side, side)),
+            Rectangle::new(Point::new(0f32, 0f32), Size::new(width, height)),
             Image::new(self.handle.clone()).filter_method(FilterMethod::Nearest),
         );
         frame.draw_image(
-            Rectangle::new(Point::new(0f32, 0f32), Size::new(side, side)),
+            Rectangle::new(Point::new(0f32, 0f32), Size::new(width, height)),
             Image::new(indicator).filter_method(FilterMethod::Nearest),
         );
 
         vec![frame.into_geometry()]
     }
+}
+
+fn draw_dimensions(bounds: &Rectangle, dimensions: &(usize, usize)) -> Size {
+    let scale = (bounds.width / dimensions.0 as f32)
+        .min(bounds.height / dimensions.1 as f32);
+    Size::new(dimensions.0 as f32 * scale, dimensions.1 as f32 * scale)
 }
 
 pub fn editor<'a, M>(
