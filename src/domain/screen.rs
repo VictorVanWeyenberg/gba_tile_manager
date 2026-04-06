@@ -1,35 +1,41 @@
 use crate::character::Character;
 use crate::map::CharacterData;
-use crate::project::Savable;
-use std::io::Read;
-use iced::advanced::image::Handle;
 use crate::palette::Palette;
+use crate::project::Savable;
 use crate::render::render_screen;
+use iced::advanced::image::Handle;
+use std::io::Read;
+use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ScreenData {
     name: String,
-    characters: [[Character; 32]; 32],
+    characters: Vec<Character>,
 }
 
 impl ScreenData {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            characters: [[Character::default(); 32]; 32],
+            characters: vec![Character::default(); 32 * 32],
         }
-    }
-
-    pub fn get_character(&self, x: usize, y: usize) -> &Character {
-        &self.characters[y][x]
-    }
-
-    pub fn set_character(&mut self, character: Character, x: usize, y: usize) {
-        self.characters[y][x] = character
     }
 
     pub fn render(&self, character_data: &CharacterData, palette: &Palette) -> Handle {
         render_screen(palette, character_data, self).to_handle()
+    }
+}
+
+impl Deref for ScreenData {
+    type Target = Vec<Character>;
+    fn deref(&self) -> &Self::Target {
+        &self.characters
+    }
+}
+
+impl DerefMut for ScreenData {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.characters
     }
 }
 
@@ -44,26 +50,29 @@ impl Savable for ScreenData {
 
     fn create<R: Read>(name: impl ToString, mut data: R) -> Self {
         let mut buf = [0u8; 2];
-        let mut characters = [[Character::default(); 32]; 32];
-        let mut index = 0;
+        let mut characters = vec![];
         while data.read_exact(&mut buf).is_ok() {
-            let x = index % 32;
-            let y = index / 32;
-            characters[y][x] = Character::from(buf);
-            index += 1;
+            characters.push(Character::from(buf));
         }
-        ScreenData { name: name.to_string(), characters }
+        while characters.len() < 32 * 32 {
+            characters.push(Character::default());
+        }
+        ScreenData {
+            name: name.to_string(),
+            characters,
+        }
     }
 
     fn as_data(&self) -> Vec<u8> {
-        let bytes: Vec<u8> = self.characters
-            .into_iter()
-            .flatten()
-            .map::<[u8; 2], _>(Character::into)
+        let bytes: Vec<u8> = self
+            .characters
+            .iter()
+            .map::<[u8; 2], _>(|character|character.into())
             .flatten()
             .collect();
 
-        bytes.chunks_exact(2)
+        bytes
+            .chunks_exact(2)
             .rposition(|b| b[0] != 0 || b[1] != 0)
             .map_or(&[][..], |i| &bytes[..=i * 2 + 1])
             .try_into()
@@ -87,32 +96,50 @@ mod tests {
             .to_owned();
         fs::create_dir(temp_dir.clone()).unwrap();
 
-        let mut screen = ScreenData::default();
-        screen.set_character(Character::new(0, false, false, 0), 0, 0);
-        screen.set_character(Character::new(1, false, false, 1), 1, 0);
-        screen.set_character(Character::new(2, false, false, 2), 2, 0);
-        screen.set_character(Character::new(3, false, false, 3), 3, 0);
-        screen.set_character(Character::new(4, false, false, 4), 4, 0);
-        screen.set_character(Character::new(5, false, false, 5), 0, 1);
+        let mut screen = ScreenData::new("Test screen");
+        screen[0] = Character::new(0, false, false, 0);
+        screen[1] = Character::new(1, false, false, 1);
+        screen[2] = Character::new(2, false, false, 2);
+        screen[3] = Character::new(3, false, false, 3);
+        screen[4] = Character::new(4, false, false, 4);
+        screen[33] = Character::new(5, false, false, 5);
 
         let screen_data_path = screen.save(temp_dir).expect("Could not save screen data.");
         let screen = ScreenData::read(screen_data_path).expect("Could not read screen data.");
 
-        assert_eq!(screen.get_character(0, 0), &Character::new(0, false, false, 0));
-        assert_eq!(screen.get_character(1, 0), &Character::new(1, false, false, 1));
-        assert_eq!(screen.get_character(2, 0), &Character::new(2, false, false, 2));
-        assert_eq!(screen.get_character(3, 0), &Character::new(3, false, false, 3));
-        assert_eq!(screen.get_character(4, 0), &Character::new(4, false, false, 4));
-        assert_eq!(screen.get_character(0, 1), &Character::new(5, false, false, 5));
+        assert_eq!(
+            &screen[0],
+            &Character::new(0, false, false, 0)
+        );
+        assert_eq!(
+            &screen[1],
+            &Character::new(1, false, false, 1)
+        );
+        assert_eq!(
+            &screen[2],
+            &Character::new(2, false, false, 2)
+        );
+        assert_eq!(
+            &screen[3],
+            &Character::new(3, false, false, 3)
+        );
+        assert_eq!(
+            &screen[4],
+            &Character::new(4, false, false, 4)
+        );
+        assert_eq!(
+            &screen[33],
+            &Character::new(5, false, false, 5)
+        );
 
-        for x in 0..30 {
-            for y in 0..20 {
-                match (x, y) {
-                    (x, 0) if x < 5 => continue,
-                    (0, 1) => continue,
-                    _ => assert_eq!(screen.get_character(x, y), &Character::new(0, false, false, 0)),
-                }
+        for idx in 0..32*32 {
+            if idx < 5 || idx == 33 {
+                continue
             }
+            assert_eq!(
+                &screen[idx],
+                &Character::new(0, false, false, 0)
+            )
         }
     }
 }

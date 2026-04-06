@@ -41,9 +41,12 @@ pub fn render_screen<'c>(
 
     for y in 0..20 {
         for x in 0..30 {
-            let character = screen_data.get_character(x, y);
+            let character = screen_data[y * 32 + x];
 
-            let tile = character_data.get(character.tile_number()).unwrap();
+            let default_tile = Tile::default();
+            let tile = character_data
+                .get(character.tile_number())
+                .unwrap_or(character_data.get(0).unwrap_or(&default_tile));
             let tile = flip_tile(tile, character.vertical_flip(), character.horizontal_flip());
 
             for tile_y in 0..8 {

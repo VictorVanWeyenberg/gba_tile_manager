@@ -1,3 +1,4 @@
+use crate::character::Character;
 use crate::project::Project;
 use crate::ui::editor::editor;
 use crate::ui::selector::selector;
@@ -53,8 +54,8 @@ pub fn screen_view<'a>(
             tile_selector(project, screens_state),
         )
         .spacing(10)
-        .width(Length::FillPortion(3)),
-        container(screen_editor(project, screens_state)).width(Length::FillPortion(7))
+        .width(Length::FillPortion(1)),
+        container(screen_editor(project, screens_state)).width(Length::FillPortion(4))
     ]
     .spacing(10)
     .padding(10)
@@ -75,8 +76,8 @@ fn tile_selector<'a>(
             Some(selector(
                 character_data.render(palette),
                 4,
-                &screens_state.selected_character,
-                |selected| Message::Screen(ScreenMessage::ScreenClicked(selected)),
+                &screens_state.selected_tile,
+                |selected| Message::Screen(ScreenMessage::TileSelected(selected)),
             ))
         })
         .unwrap_or(space().into())
@@ -119,13 +120,51 @@ pub fn handle_screen_message(state: &mut State, message: ScreenMessage) {
         ScreenMessage::PaletteSelected(name) => screens_state.selected_palette = Some(name),
         ScreenMessage::ScreenSelected(selected) => screens_state.selected_screen = Some(selected),
         ScreenMessage::AddScreen => add_screen(project, screens_state),
-        ScreenMessage::TileSelected(selected) => screens_state.selected_tile = selected,
-        ScreenMessage::ScreenClicked(selected) => screens_state.selected_character = selected,
+        ScreenMessage::TileSelected(selected) => tile_selected(project, screens_state, selected),
+        ScreenMessage::ScreenClicked(selected) => update_screen(project, screens_state, selected),
         ScreenMessage::Flipped { h_flip, v_flip } => {
-            screens_state.h_flip = h_flip;
-            screens_state.v_flip = v_flip;
+            flipped(project, screens_state, h_flip, v_flip)
         }
     }
+    if let Some(screen_data) = screens_state
+        .selected_screen
+        .as_ref()
+        .and_then(|name| project.screen_data(name))
+    {
+        let x = screens_state.selected_character % 30;
+        let y = screens_state.selected_character / 30;
+        let index = y * 32 + x;
+        screens_state.selected_tile = screen_data[index].tile_number();
+    }
+}
+
+fn tile_selected(project: &mut Project, screens_state: &mut ScreensState, selected: usize) {
+    screens_state.selected_tile = selected;
+    update_screen(project, screens_state, screens_state.selected_character)
+}
+
+fn flipped(project: &mut Project, screens_state: &mut ScreensState, h_flip: bool, v_flip: bool) {
+    screens_state.h_flip = h_flip;
+    screens_state.v_flip = v_flip;
+    update_screen(project, screens_state, screens_state.selected_character)
+}
+
+fn update_screen(project: &mut Project, screens_state: &mut ScreensState, selected: usize) {
+    let character = Character::new(
+        screens_state.selected_tile,
+        screens_state.h_flip,
+        screens_state.v_flip,
+        0,
+    );
+    let x = selected % 30;
+    let y = selected / 30;
+    let index = y * 32 + x;
+    screens_state
+        .selected_screen
+        .as_ref()
+        .and_then(|name| project.screen_data_mut(name))
+        .unwrap()[index] = character;
+    screens_state.selected_character = selected;
 }
 
 fn add_screen(project: &mut Project, screens_state: &mut ScreensState) {
