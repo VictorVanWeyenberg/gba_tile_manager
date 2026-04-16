@@ -1,5 +1,6 @@
 use crate::color::Color;
 use crate::project::Project;
+use crate::ui::boop_view::boop_view;
 use crate::ui::palette_view::palette_view;
 use crate::ui::screen_view::screen_view;
 use crate::ui::tile_view::tile_view;
@@ -7,6 +8,7 @@ use iced::widget::combo_box;
 use iced::Element;
 use iced_aw::{TabLabel, Tabs};
 
+mod boop_view;
 mod editor;
 mod palette_view;
 mod screen_view;
@@ -19,6 +21,7 @@ pub struct State {
     palette_state: PaletteState,
     tiles_state: TilesState,
     screens_state: ScreensState,
+    boops_state: BoopsState,
 }
 
 pub struct PaletteState {
@@ -97,17 +100,47 @@ impl ScreensState {
     }
 }
 
+pub struct BoopsState {
+    new_boops_name: String,
+    boops_names: combo_box::State<String>,
+    selected_boops_name: Option<String>,
+    screen_names: combo_box::State<String>,
+    selected_screen: Option<String>,
+    character_map_names: combo_box::State<String>,
+    selected_character_map: Option<String>,
+    palette_names: combo_box::State<String>,
+    selected_palette: Option<String>,
+}
+
+impl BoopsState {
+    fn new(project: &Project) -> Self {
+        Self {
+            new_boops_name: "".to_string(),
+            boops_names: combo_box::State::new(project.boop_names()),
+            selected_boops_name: None,
+            screen_names: combo_box::State::new(project.screen_names()),
+            selected_screen: None,
+            character_map_names: combo_box::State::new(project.character_data_names()),
+            selected_character_map: None,
+            palette_names: combo_box::State::new(project.palette_names()),
+            selected_palette: None,
+        }
+    }
+}
+
 impl State {
     pub fn new(project: Project) -> Self {
         let palette_state = PaletteState::new(&project);
         let tiles_state = TilesState::new(&project);
         let screens_state = ScreensState::new(&project);
+        let boops_state = BoopsState::new(&project);
         Self {
             project,
             selected_tab: Default::default(),
             palette_state,
             tiles_state,
-            screens_state
+            screens_state,
+            boops_state,
         }
     }
 }
@@ -165,6 +198,7 @@ pub enum TabId {
     Palettes,
     Tiles,
     Screens,
+    Boops,
 }
 
 pub fn view(state: &State) -> Element<'_, Message> {
@@ -183,6 +217,11 @@ pub fn view(state: &State) -> Element<'_, Message> {
             TabId::Screens,
             TabLabel::Text("Screens".to_string()),
             screens_view(&state.project, &state.screens_state),
+        )
+        .push(
+            TabId::Boops,
+            TabLabel::Text("Boops".to_string()),
+            boops_view(&state.project, &state.boops_state),
         )
         .set_active_tab(&state.selected_tab)
         .into()
@@ -203,6 +242,10 @@ fn screens_view<'a>(project: &'a Project, screens_state: &'a ScreensState) -> El
     screen_view(project, screens_state)
 }
 
+fn boops_view<'a>(project: &'a Project, boops_state: &'a BoopsState) -> Element<'a, Message> {
+    boop_view(project, boops_state)
+}
+
 pub fn update(state: &mut State, message: Message) {
     match message {
         Message::TabSelected(tab_id) => tab_selected(state, tab_id),
@@ -220,6 +263,10 @@ fn tab_selected(state: &mut State, tab_id: TabId) {
         TabId::Screens => {
             state.screens_state.palettes_names = combo_box::State::new(state.project.palette_names());
             state.screens_state.character_map_names = combo_box::State::new(state.project.character_data_names())
+        }
+        TabId::Boops => {
+            state.boops_state.palette_names = combo_box::State::new(state.project.palette_names());
+            state.boops_state.screen_names = combo_box::State::new(state.project.screen_names());
         }
         _ => {}
     };

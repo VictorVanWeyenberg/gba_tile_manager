@@ -1,3 +1,4 @@
+use crate::boop::Boops;
 use crate::err::ProjectIOError;
 use crate::map::CharacterData;
 use crate::palette::Palette;
@@ -8,7 +9,6 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use crate::boop::Boops;
 
 pub trait Savable: Sized {
     fn name(&self) -> &str;
@@ -152,6 +152,24 @@ impl Project {
             .map(|screen| screen.name().to_string())
             .collect()
     }
+
+    pub fn boop_data(&self, name: &str) -> Option<&Boops> {
+        self.boop_maps.iter().find(|map| map.name() == name)
+    }
+
+    pub fn boop_data_mut(&mut self, name: &str) -> Option<&mut Boops> {
+        self.boop_maps.iter_mut().find(|map| map.name() == name)
+    }
+
+    pub fn add_boop_data(&mut self, name: &str) {
+        self.boop_maps.push(Boops::new(name))
+    }
+
+    pub fn boop_names(&self) -> Vec<String> {
+        self.boop_maps.iter()
+            .map(|boop| boop.name().to_string())
+            .collect()
+    }
 }
 
 impl TryFrom<PathBuf> for Project {
@@ -202,7 +220,6 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
     use tempdir::TempDir;
-    use crate::boop::Boop;
 
     fn directory() -> PathBuf {
         let mut directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

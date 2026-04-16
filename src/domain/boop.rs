@@ -1,8 +1,8 @@
+use crate::err::ProjectIOError;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
-use crate::err::ProjectIOError;
 
 // Flag bit positions
 const FLAG_NORTH: u8 = 0;
@@ -173,6 +173,10 @@ impl Boops {
             name: name.into(),
             boops: Vec::new(),
         }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Saves to `<dir>/<name>_boops.bin` and `<dir>/<name>_boops_args.bin`.
