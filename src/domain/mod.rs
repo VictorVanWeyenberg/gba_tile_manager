@@ -1,3 +1,4 @@
+pub mod boop;
 pub mod character;
 pub mod color;
 pub mod err;

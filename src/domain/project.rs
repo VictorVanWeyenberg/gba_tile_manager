@@ -8,6 +8,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use crate::boop::Boops;
 
 pub trait Savable: Sized {
     fn name(&self) -> &str;
@@ -51,6 +52,7 @@ pub struct Project {
     palettes: Vec<Palette>,
     character_maps: Vec<CharacterData>,
     screen_maps: Vec<ScreenData>,
+    boop_maps: Vec<Boops>,
 }
 
 impl Project {
@@ -60,6 +62,7 @@ impl Project {
             palettes: Default::default(),
             character_maps: Default::default(),
             screen_maps: Default::default(),
+            boop_maps: Default::default(),
         }
     }
 
@@ -69,6 +72,7 @@ impl Project {
             palettes,
             character_maps,
             screen_maps,
+            boop_maps,
         } = self;
         // TODO: Write to temp dir, then move.
         for palette in palettes {
@@ -79,6 +83,9 @@ impl Project {
         }
         for screen_data in screen_maps {
             screen_data.save(path)?;
+        }
+        for boop_map in boop_maps {
+            boop_map.save(path)?;
         }
         Ok(())
     }
@@ -154,6 +161,7 @@ impl TryFrom<PathBuf> for Project {
         let mut palettes = vec![];
         let mut character_maps = vec![];
         let mut screen_maps = vec![];
+        let mut boop_maps = vec![];
 
         let paths = fs::read_dir(&path)?;
 
@@ -169,6 +177,8 @@ impl TryFrom<PathBuf> for Project {
                 character_maps.push(character_data)
             } else if let Ok(screen_data) = ScreenData::read(&path) {
                 screen_maps.push(screen_data)
+            } else if let Ok(boop_map) = Boops::load(&path) {
+                boop_maps.push(boop_map)
             }
         }
 
@@ -181,6 +191,7 @@ impl TryFrom<PathBuf> for Project {
             palettes,
             character_maps,
             screen_maps,
+            boop_maps,
         })
     }
 }
@@ -191,11 +202,16 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
     use tempdir::TempDir;
+    use crate::boop::Boop;
 
-    fn read_project() -> Project {
+    fn directory() -> PathBuf {
         let mut directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         directory.push("resources");
-        Project::try_from(directory).unwrap()
+        directory
+    }
+
+    fn read_project() -> Project {
+        Project::try_from(directory()).unwrap()
     }
 
     #[test]

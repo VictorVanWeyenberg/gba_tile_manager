@@ -6,6 +6,7 @@ pub enum ProjectIOError {
     IO(std::io::Error),
     // Serde(serde_json::Error),
     Custom(String),
+    Regex(regex::Error),
 }
 
 impl Error for ProjectIOError {}
@@ -31,5 +32,11 @@ impl From<std::io::Error> for ProjectIOError {
 impl From<&str> for ProjectIOError {
     fn from(value: &str) -> Self {
         ProjectIOError::Custom(value.to_string())
+    }
+}
+
+impl From<regex::Error> for ProjectIOError {
+    fn from(value: regex::Error) -> Self {
+        ProjectIOError::Regex(value)
     }
 }
