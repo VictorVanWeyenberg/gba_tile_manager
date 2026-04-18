@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut, Shl, Shr};
+use std::ops::{Deref, Shl, Shr};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Tile {
@@ -22,12 +22,6 @@ impl Deref for Tile {
 
     fn deref(&self) -> &Self::Target {
         &self.palette_indexes
-    }
-}
-
-impl DerefMut for Tile {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.palette_indexes
     }
 }
 

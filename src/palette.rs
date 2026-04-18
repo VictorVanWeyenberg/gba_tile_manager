@@ -1,23 +1,17 @@
 use crate::color::Color;
 use crate::savable::Savable;
 use std::io::Read;
-use std::ops::{Deref, DerefMut};
-
-const CURSOR_PALETTE_NAME: &str = "CURSOR_PALETTE";
+use std::ops::Deref;
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum Palette {
-    Cursor,
-    Gba { name: String, colors: Vec<Color> },
+pub struct Palette {
+    name: String,
+    colors: Vec<Color>,
 }
 
 impl Palette {
-    pub fn new(name: impl ToString) -> Self {
-        Palette::with_colors(name, vec![])
-    }
-
     pub fn with_colors(name: impl ToString, colors: Vec<Color>) -> Self {
-        Self::Gba {
+        Self {
             name: name.to_string(),
             colors,
         }
@@ -28,31 +22,13 @@ impl Deref for Palette {
     type Target = Vec<Color>;
 
     fn deref(&self) -> &Self::Target {
-        if let Self::Gba { colors, .. } = self {
-            colors
-        } else {
-            panic!("Dereferencing a static palette.")
-        }
-    }
-}
-
-impl DerefMut for Palette {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        if let Self::Gba { colors, .. } = self {
-            colors
-        } else {
-            panic!("Dereferencing a static palette.")
-        }
+        &self.colors
     }
 }
 
 impl Savable for Palette {
     fn name(&self) -> &str {
-        if let Self::Gba { name, .. } = self {
-            name
-        } else {
-            CURSOR_PALETTE_NAME
-        }
+        &self.name
     }
 
     fn suffix() -> &'static str {
@@ -92,21 +68,22 @@ mod tests {
             .to_owned();
         fs::create_dir(temp_dir.clone()).unwrap();
 
-        let mut palette = Palette::new("test");
-        palette.push(Color::new(31, 0, 0).unwrap());
-        palette.push(Color::new(0, 31, 0).unwrap());
-        palette.push(Color::new(0, 0, 31).unwrap());
-        palette.push(Color::new(31, 31, 31).unwrap());
-        palette.push(Color::new(0, 0, 0).unwrap());
+        let mut colors = vec![];
+        colors.push(Color::new(31, 0, 0).unwrap());
+        colors.push(Color::new(0, 31, 0).unwrap());
+        colors.push(Color::new(0, 0, 31).unwrap());
+        colors.push(Color::new(31, 31, 31).unwrap());
+        colors.push(Color::new(0, 0, 0).unwrap());
 
+        let palette = Palette::with_colors("test", colors);
         let palette_path = palette.save(temp_dir).expect("Could not save palette.");
-        let mut palette = Palette::read(palette_path).expect("Could not read palette.");
+        let palette = Palette::read(palette_path).expect("Could not read palette.");
 
         assert_eq!(palette.len(), 5);
-        assert_eq!(palette.remove(0), Color::new(31, 0, 0).unwrap());
-        assert_eq!(palette.remove(0), Color::new(0, 31, 0).unwrap());
-        assert_eq!(palette.remove(0), Color::new(0, 0, 31).unwrap());
-        assert_eq!(palette.remove(0), Color::new(31, 31, 31).unwrap());
-        assert_eq!(palette.remove(0), Color::new(0, 0, 0).unwrap());
+        assert_eq!(palette.get(0), Some(&Color::new(31, 0, 0).unwrap()));
+        assert_eq!(palette.get(1), Some(&Color::new(0, 31, 0).unwrap()));
+        assert_eq!(palette.get(2), Some(&Color::new(0, 0, 31).unwrap()));
+        assert_eq!(palette.get(3), Some(&Color::new(31, 31, 31).unwrap()));
+        assert_eq!(palette.get(4), Some(&Color::new(0, 0, 0).unwrap()));
     }
 }

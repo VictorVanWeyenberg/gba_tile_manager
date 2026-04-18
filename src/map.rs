@@ -1,7 +1,7 @@
 use crate::savable::Savable;
 use crate::tile::Tile;
 use std::io::Read;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct CharacterData {
@@ -10,10 +10,10 @@ pub struct CharacterData {
 }
 
 impl CharacterData {
-    pub fn new(name: impl ToString) -> Self {
+    pub fn with_tiles(name: impl ToString, tiles: Vec<Tile>) -> Self {
         Self {
             name: name.to_string(),
-            tiles: vec![],
+            tiles,
         }
     }
 }
@@ -23,12 +23,6 @@ impl Deref for CharacterData {
 
     fn deref(&self) -> &Self::Target {
         &self.tiles
-    }
-}
-
-impl DerefMut for CharacterData {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.tiles
     }
 }
 

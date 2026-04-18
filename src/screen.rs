@@ -1,7 +1,7 @@
 use crate::character::Character;
 use crate::savable::Savable;
 use std::io::Read;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ScreenData {
@@ -10,10 +10,10 @@ pub struct ScreenData {
 }
 
 impl ScreenData {
-    pub fn new(name: &str) -> Self {
+    pub fn with_characters(name: &str, characters: Vec<Character>) -> Self {
         Self {
             name: name.to_string(),
-            characters: vec![Character::default(); 32 * 32],
+            characters,
         }
     }
 }
@@ -22,12 +22,6 @@ impl Deref for ScreenData {
     type Target = Vec<Character>;
     fn deref(&self) -> &Self::Target {
         &self.characters
-    }
-}
-
-impl DerefMut for ScreenData {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.characters
     }
 }
 
@@ -88,14 +82,15 @@ mod tests {
             .to_owned();
         fs::create_dir(temp_dir.clone()).unwrap();
 
-        let mut screen = ScreenData::new("Test screen");
-        screen[0] = Character::new(0, false, false, 0);
-        screen[1] = Character::new(1, false, false, 1);
-        screen[2] = Character::new(2, false, false, 2);
-        screen[3] = Character::new(3, false, false, 3);
-        screen[4] = Character::new(4, false, false, 4);
-        screen[33] = Character::new(5, false, false, 5);
+        let mut characters = vec![Character::default(); 32 * 32];
+        characters[0] = Character::new(0, false, false, 0);
+        characters[1] = Character::new(1, false, false, 1);
+        characters[2] = Character::new(2, false, false, 2);
+        characters[3] = Character::new(3, false, false, 3);
+        characters[4] = Character::new(4, false, false, 4);
+        characters[33] = Character::new(5, false, false, 5);
 
+        let screen = ScreenData::with_characters("Test screen", characters);
         let screen_data_path = screen.save(temp_dir).expect("Could not save screen data.");
         let screen = ScreenData::read(screen_data_path).expect("Could not read screen data.");
 
