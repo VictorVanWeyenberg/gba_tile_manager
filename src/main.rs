@@ -3,9 +3,9 @@ use std::env;
 
 mod boop;
 mod character;
+mod character_data;
 mod color;
 mod error;
-mod map;
 mod palette;
 mod project;
 mod savable;
@@ -18,4 +18,5 @@ fn main() {
         .try_into()
         .expect("Failed to load project.");
     println!("Loaded project in {}.", project.name());
+    let digest = project.digest().expect("Could not digest project.");
 }

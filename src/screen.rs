@@ -1,7 +1,10 @@
+use std::fs::File;
 use crate::character::Character;
 use crate::savable::Savable;
-use std::io::Read;
+use std::io::{BufReader, Read};
 use std::ops::Deref;
+use crate::error::Error;
+use crate::palette::Palette;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ScreenData {
@@ -63,6 +66,14 @@ impl Savable for ScreenData {
             .map_or(&[][..], |i| &bytes[..=i * 2 + 1])
             .try_into()
             .unwrap()
+    }
+}
+
+impl TryFrom<&png::Reader<BufReader<File>>> for ScreenData {
+    type Error = Error;
+
+    fn try_from(reader: &png::Reader<BufReader<File>>) -> Result<Self, Self::Error> {
+        todo!("Screen data from PNG.")
     }
 }
 

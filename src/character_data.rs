@@ -1,7 +1,10 @@
+use std::fs::File;
 use crate::savable::Savable;
 use crate::tile::Tile;
-use std::io::Read;
+use std::io::{BufReader, Read};
 use std::ops::Deref;
+use crate::error::Error;
+use crate::palette::Palette;
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct CharacterData {
@@ -53,5 +56,13 @@ impl Savable for CharacterData {
             .map::<[u8; 32], _>(|tile| tile.into())
             .flatten()
             .collect()
+    }
+}
+
+impl TryFrom<&png::Reader<BufReader<File>>> for CharacterData {
+    type Error = Error;
+
+    fn try_from(reader: &png::Reader<BufReader<File>>) -> Result<Self, Self::Error> {
+        todo!("Character data from PNG.")
     }
 }

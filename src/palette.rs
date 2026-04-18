@@ -1,7 +1,10 @@
+use std::fs::File;
 use crate::color::Color;
 use crate::savable::Savable;
-use std::io::Read;
+use std::io::{BufReader, Read};
 use std::ops::Deref;
+use png;
+use crate::error::Error;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Palette {
@@ -49,6 +52,14 @@ impl Savable for Palette {
             .map(|c| -> [u8; 2] { c.into() })
             .flatten()
             .collect()
+    }
+}
+
+impl TryFrom<&png::Reader<BufReader<File>>> for Palette {
+    type Error = Error;
+
+    fn try_from(reader: &png::Reader<BufReader<File>>) -> Result<Self, Self::Error> {
+        todo!("Palette from PNG.")
     }
 }
 
