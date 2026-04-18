@@ -1,4 +1,4 @@
-use crate::err::Error;
+use crate::error::Error;
 use std::fmt::Debug;
 use std::fs;
 use std::fs::File;

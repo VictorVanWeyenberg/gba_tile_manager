@@ -1,4 +1,4 @@
-use crate::err::Error;
+use crate::error::Error;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};

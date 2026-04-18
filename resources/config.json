@@ -1,0 +1,15 @@
+{
+  "name": "grooveboy",
+  "screens": [
+    {
+      "palette": "background_palette.png",
+      "character": "bg0_empty_art.png",
+      "screen": "empty_art_bg0.png"
+    },
+    {
+      "palette": "background_palette.png",
+      "character": "bg1_empty_art.png",
+      "screen": "empty_art_bg1.png"
+    }
+  ]
+}
