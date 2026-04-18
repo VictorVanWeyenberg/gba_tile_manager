@@ -1,9 +1,5 @@
 use crate::character::Character;
-use crate::map::CharacterData;
-use crate::palette::Palette;
-use crate::project::Savable;
-use crate::render::render_screen;
-use iced::advanced::image::Handle;
+use crate::savable::Savable;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
 
@@ -19,10 +15,6 @@ impl ScreenData {
             name: name.to_string(),
             characters: vec![Character::default(); 32 * 32],
         }
-    }
-
-    pub fn render(&self, character_data: &CharacterData, palette: &Palette) -> Handle {
-        render_screen(palette, character_data, self).to_handle()
     }
 }
 
@@ -83,7 +75,7 @@ impl Savable for ScreenData {
 #[cfg(test)]
 mod tests {
     use crate::character::Character;
-    use crate::project::Savable;
+    use crate::savable::Savable;
     use crate::screen::ScreenData;
     use std::fs;
     use tempdir::TempDir;

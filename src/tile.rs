@@ -1,6 +1,3 @@
-use crate::palette::Palette;
-use crate::render::render_tile;
-use iced::advanced::image::Handle;
 use std::ops::{Deref, DerefMut, Shl, Shr};
 
 #[derive(Debug, Eq, PartialEq)]
@@ -17,10 +14,6 @@ impl Default for Tile {
 impl Tile {
     pub fn new(palette_indexes: [u8; 64]) -> Self {
         Self { palette_indexes }
-    }
-
-    pub fn render_with<'a>(&'a self, palette: &'a Palette) -> Handle {
-        render_tile(palette, self).to_handle()
     }
 }
 

@@ -35,6 +35,10 @@ impl Color {
         };
         [self.r * 8, self.g * 8, self.b * 8, transparent]
     }
+    
+    pub fn bit_15(&self) -> [u8; 3] {
+        [self.r, self.g, self.b]
+    }
 }
 
 impl Into<[u8; 2]> for &Color {

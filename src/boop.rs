@@ -1,4 +1,4 @@
-use crate::err::ProjectIOError;
+use crate::err::Error;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
@@ -181,7 +181,7 @@ impl Boops {
 
     /// Saves to `<dir>/<name>_boops.bin` and `<dir>/<name>_boops_args.bin`.
     /// Returns the directory path as a `PathBuf`.
-    pub fn save<P: AsRef<Path>>(&self, dir: P) -> Result<PathBuf, ProjectIOError> {
+    pub fn save<P: AsRef<Path>>(&self, dir: P) -> Result<PathBuf, Error> {
         let dir = dir.as_ref();
 
         let boops_path = dir.join(format!("{}_boops.bin", self.name));
@@ -204,19 +204,19 @@ impl Boops {
     /// Loads from the given `_boops.bin` path, deriving the name by stripping
     /// the `_boops.bin` suffix, and the args file as the sibling
     /// `_boops_args.bin` in the same directory.
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProjectIOError> {
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
         let boops_path = path.as_ref();
 
         let file_name = boops_path
             .file_name()
             .and_then(|n| n.to_str())
-            .ok_or_else(|| ProjectIOError::Custom(
+            .ok_or_else(|| Error::Custom(
                 "path has no valid file name".into(),
             ))?;
 
         let name = file_name
             .strip_suffix("_boops.bin")
-            .ok_or_else(|| ProjectIOError::Custom(format!(
+            .ok_or_else(|| Error::Custom(format!(
                 "file name {file_name:?} does not end with `_boops.bin`",
             )))?
             .to_owned();
@@ -233,7 +233,7 @@ impl Boops {
         }
 
         if boops_data.len() % 12 != 0 {
-            return Err(ProjectIOError::Custom(format!(
+            return Err(Error::Custom(format!(
                 "boops file size {} is not a multiple of 12",
                 boops_data.len()
             )));
@@ -254,7 +254,7 @@ impl Boops {
     pub fn assign_args_indices_and_save<P: AsRef<Path>>(
         &mut self,
         dir: P,
-    ) -> Result<PathBuf, ProjectIOError> {
+    ) -> Result<PathBuf, Error> {
         let mut cursor: u8 = 0;
         for boop in &mut self.boops {
             if !boop.actual_args.is_empty() {
@@ -263,7 +263,7 @@ impl Boops {
                 boop.set_args(Some(cursor), args);
                 cursor = cursor
                     .checked_add(len)
-                    .ok_or_else(|| ProjectIOError::Custom(
+                    .ok_or_else(|| Error::Custom(
                         "args_index overflowed u8".into(),
                     ))?;
             }

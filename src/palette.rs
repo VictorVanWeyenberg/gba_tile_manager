@@ -1,7 +1,5 @@
 use crate::color::Color;
-use crate::project::Savable;
-use crate::render::{from_dimensions, ImageData};
-use iced::widget::image::Handle;
+use crate::savable::Savable;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
 
@@ -10,10 +8,7 @@ const CURSOR_PALETTE_NAME: &str = "CURSOR_PALETTE";
 #[derive(Debug, Eq, PartialEq)]
 pub enum Palette {
     Cursor,
-    Gba {
-        name: String,
-        colors: Vec<Color>,
-    }
+    Gba { name: String, colors: Vec<Color> },
 }
 
 impl Palette {
@@ -22,54 +17,10 @@ impl Palette {
     }
 
     pub fn with_colors(name: impl ToString, colors: Vec<Color>) -> Self {
-        Self::Gba { name: name.to_string(), colors }
-    }
-
-    pub fn set_color(&mut self, index: usize, color: Color) {
-        if let Self::Gba {
-            colors, ..
-        } = self {
-            while index >= colors.len() {
-                colors.push(Color::black())
-            }
-
-            colors[index] = color
+        Self::Gba {
+            name: name.to_string(),
+            colors,
         }
-    }
-
-    pub fn render_square(&self) -> Handle {
-        self.render_with_dimensions((16, 16))
-    }
-
-    pub fn render_colors(&self) -> Vec<Handle> {
-        if let Self::Gba {
-            colors, ..
-        } = self {
-            (0..colors.len())
-                .map(|idx| {
-                    ImageData::<'_> {
-                        palette: self,
-                        data: vec![idx as u8],
-                        dimensions: (1, 1),
-                        transparent: false,
-                    }.to_handle()
-                })
-                .collect()
-        } else {
-            vec![]
-        }
-    }
-
-    fn render_with_dimensions(&self, dimensions: (usize, usize)) -> Handle {
-        let data = from_dimensions(&dimensions, |idx| {
-            if idx < self.len() { idx as u8 } else { 0u8 }
-        });
-        ImageData::<'_> {
-            palette: self,
-            data,
-            dimensions,
-            transparent: false,
-        }.to_handle()
     }
 }
 
@@ -129,7 +80,7 @@ impl Savable for Palette {
 mod tests {
     use crate::color::Color;
     use crate::palette::Palette;
-    use crate::project::Savable;
+    use crate::savable::Savable;
     use std::fs;
     use tempdir::TempDir;
 
@@ -148,7 +99,7 @@ mod tests {
         palette.push(Color::new(31, 31, 31).unwrap());
         palette.push(Color::new(0, 0, 0).unwrap());
 
-        let palette_path = (palette).save(temp_dir).expect("Could not save palette.");
+        let palette_path = palette.save(temp_dir).expect("Could not save palette.");
         let mut palette = Palette::read(palette_path).expect("Could not read palette.");
 
         assert_eq!(palette.len(), 5);
@@ -159,4 +110,3 @@ mod tests {
         assert_eq!(palette.remove(0), Color::new(0, 0, 0).unwrap());
     }
 }
-
