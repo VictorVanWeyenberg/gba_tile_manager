@@ -12,7 +12,13 @@ pub struct CharacterData {
 }
 
 impl CharacterData {
-    pub fn with_tiles(name: impl ToString, tiles: Vec<Tile>) -> Self {
+    pub fn with_tiles(name: impl ToString, mut tiles: Vec<Tile>) -> Self {
+        while let Some(Tile { palette_indexes }) = tiles.last() {
+            if palette_indexes.iter().any(|&p| p != 0) {
+                break;
+            }
+            tiles.pop();
+        }
         Self {
             name: name.to_string(),
             tiles,

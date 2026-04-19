@@ -2,7 +2,7 @@ use std::ops::{Deref, Shl, Shr};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Tile {
-    palette_indexes: [u8; 64] // Linear
+    pub palette_indexes: [u8; 64] // Linear
 }
 
 impl Default for Tile {

@@ -259,8 +259,10 @@ impl TryFrom<PathBuf> for Project {
 #[cfg(test)]
 mod tests {
     use crate::color::Color;
-    use crate::project::{PaletteNode, Project};
+    use crate::project::{CharacterNode, PaletteNode, Project};
     use std::path::PathBuf;
+    use crate::character_data::CharacterData;
+    use crate::palette::Palette;
 
     #[test]
     fn read_project() {
@@ -272,13 +274,17 @@ mod tests {
         project.digest().expect("Could not digest project");
     }
 
-    #[test]
-    fn palette_from_image() {
+    fn read_palette() -> Palette {
         let palette =
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/background_palette.png");
         let mut palette = PaletteNode::new("background_palette.png".into(), palette)
             .expect("Could not create palette");
-        let palette = palette.as_palette().unwrap();
+        palette.as_palette().unwrap()
+    }
+
+    #[test]
+    fn palette_from_image() {
+        let palette = read_palette();
         assert_eq!(palette.len(), 6);
         assert_eq!(palette.get(0), Some(&Color::new(5, 6, 6).unwrap()));
         assert_eq!(palette.get(1), Some(&Color::new(9, 9, 13).unwrap()));
@@ -286,5 +292,26 @@ mod tests {
         assert_eq!(palette.get(3), Some(&Color::new(27, 26, 27).unwrap()));
         assert_eq!(palette.get(4), Some(&Color::new(2, 5, 13).unwrap()));
         assert_eq!(palette.get(5), Some(&Color::new(21, 23, 21).unwrap()));
+    }
+
+    #[test]
+    fn character_data_from_image() {
+        let palette = read_palette();
+
+        let character_data =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/bg1_empty_art.png");
+        let mut character_data = CharacterNode::new("bg1_empty_art.png".into(), character_data)
+            .expect("Could not create character data");
+        let character_data = character_data.as_character_data(&palette).unwrap();
+
+        assert_eq!(character_data.len(), 100);
+        let tile = character_data.get(14).unwrap();
+        for idx in 0..63 {
+            if idx == 49 || idx == 50 || idx == 41 || idx == 42 {
+                assert_eq!(tile[idx], 3, "{idx}");
+            } else {
+                assert_eq!(tile[idx], 0, "{idx}");
+            }
+        }
     }
 }

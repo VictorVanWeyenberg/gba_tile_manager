@@ -44,7 +44,7 @@ fn read_4_bit<R: BufRead + Seek>(reader: &mut png::Reader<R>) -> Result<Vec<u8>,
     let mut buf = vec![0; reader.output_buffer_size().unwrap()];
     reader.next_frame(&mut buf)?;
     Ok(buf.into_iter()
-        .map(|i| [i & 0x0f, i >> 4])
+        .map(|i| [i >> 4, i & 0x0f])
         .flatten()
         .collect())
 }
