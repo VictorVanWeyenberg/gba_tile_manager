@@ -1,8 +1,9 @@
 use crate::character_data::CharacterData;
+use crate::color::Color;
 use crate::error::Error;
 use crate::palette::Palette;
 use crate::screen::ScreenData;
-use png::Decoder;
+use png::{DecodeOptions, Decoder};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -48,9 +49,9 @@ impl Project {
         Ok(())
     }
 
-    pub fn digest(&self) -> Result<Digests, Error> {
+    pub fn digest(&mut self) -> Result<Digests, Error> {
         let mut digest = Digests::default();
-        for palette in &self.palettes {
+        for palette in &mut self.palettes {
             palette.digest(&mut digest)?;
         }
         Ok(digest)
@@ -93,12 +94,23 @@ impl PaletteNode {
         Ok(())
     }
 
-    fn digest(&self, digests: &mut Digests) -> Result<(), Error> {
-        digests.palettes.push((&self.reader).try_into()?);
+    fn digest(&mut self, digests: &mut Digests) -> Result<(), Error> {
+        digests.palettes.push(self.as_palette()?);
         for character_map in &self.character_maps {
             character_map.digest(digests)?;
         }
         Ok(())
+    }
+
+    fn as_palette(&mut self) -> Result<Palette, Error> {
+        let mut buf = vec![0; self.reader.output_buffer_size().unwrap()];
+        self.reader.next_frame(&mut buf)?;
+        let colors = buf
+            .chunks_exact(3)
+            .map(|c| Color::new(c[0] / 8, c[1] / 8, c[2] / 8))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|message| Error::Custom(message))?;
+        Ok(Palette::with_colors(&self.name, colors))
     }
 }
 
@@ -203,7 +215,8 @@ impl TryFrom<PathBuf> for Project {
         for (palette, characters) in screens {
             let mut palette = PaletteNode::new(palette.clone(), directory.join(palette))?;
             for (character, screens) in characters {
-                let mut character = CharacterNode::new(character.clone(), directory.join(character))?;
+                let mut character =
+                    CharacterNode::new(character.clone(), directory.join(character))?;
                 for screen in screens {
                     character
                         .screens
@@ -221,8 +234,9 @@ impl TryFrom<PathBuf> for Project {
 
 #[cfg(test)]
 mod tests {
-    use crate::project::Project;
+    use crate::project::{PaletteNode, Project};
     use std::path::PathBuf;
+    use crate::color::Color;
 
     #[test]
     fn read_project() {
@@ -231,5 +245,21 @@ mod tests {
             .try_into()
             .expect("Could not open project");
         println!("{project:?}");
+    }
+
+    #[test]
+    fn palette_from_image() {
+        let palette =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/background_palette.png");
+        let mut palette = PaletteNode::new("background_palette.png".into(), palette)
+            .expect("Could not create palette");
+        let palette = palette.as_palette().unwrap();
+        assert_eq!(palette.len(), 6);
+        assert_eq!(palette.get(0), Some(&Color::new(5, 6, 6).unwrap()));
+        assert_eq!(palette.get(1), Some(&Color::new(9, 9, 13).unwrap()));
+        assert_eq!(palette.get(2), Some(&Color::new(14, 13, 16).unwrap()));
+        assert_eq!(palette.get(3), Some(&Color::new(27, 26, 27).unwrap()));
+        assert_eq!(palette.get(4), Some(&Color::new(2, 5, 13).unwrap()));
+        assert_eq!(palette.get(5), Some(&Color::new(21, 23, 21).unwrap()));
     }
 }

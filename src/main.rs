@@ -13,7 +13,7 @@ mod screen;
 mod tile;
 
 fn main() {
-    let project: Project = env::current_dir()
+    let mut project: Project = env::current_dir()
         .expect("Could not get current working directory.")
         .try_into()
         .expect("Failed to load project.");

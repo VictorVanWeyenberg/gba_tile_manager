@@ -1,10 +1,9 @@
-use std::fs::File;
 use crate::character::Character;
+use crate::error::Error;
 use crate::savable::Savable;
+use std::fs::File;
 use std::io::{BufReader, Read};
 use std::ops::Deref;
-use crate::error::Error;
-use crate::palette::Palette;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ScreenData {

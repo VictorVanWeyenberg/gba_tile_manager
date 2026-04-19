@@ -1,10 +1,9 @@
-use std::fs::File;
+use crate::error::Error;
 use crate::savable::Savable;
 use crate::tile::Tile;
+use std::fs::File;
 use std::io::{BufReader, Read};
 use std::ops::Deref;
-use crate::error::Error;
-use crate::palette::Palette;
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct CharacterData {
