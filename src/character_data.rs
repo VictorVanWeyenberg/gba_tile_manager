@@ -57,11 +57,3 @@ impl Savable for CharacterData {
             .collect()
     }
 }
-
-impl TryFrom<&png::Reader<BufReader<File>>> for CharacterData {
-    type Error = Error;
-
-    fn try_from(reader: &png::Reader<BufReader<File>>) -> Result<Self, Self::Error> {
-        todo!("Character data from PNG.")
-    }
-}

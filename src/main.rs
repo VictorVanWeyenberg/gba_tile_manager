@@ -7,10 +7,12 @@ mod character_data;
 mod color;
 mod error;
 mod palette;
+mod png_util;
 mod project;
 mod savable;
 mod screen;
 mod tile;
+mod tile_iter;
 
 fn main() {
     let mut project: Project = env::current_dir()

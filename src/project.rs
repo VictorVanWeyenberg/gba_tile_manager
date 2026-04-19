@@ -3,13 +3,16 @@ use crate::color::Color;
 use crate::error::Error;
 use crate::palette::Palette;
 use crate::screen::ScreenData;
-use png::{DecodeOptions, Decoder};
+use crate::tile_iter::TiledIterExt;
+use png::Decoder;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
+use crate::png_util::read_to_rgb_255;
+use crate::tile::Tile;
 
 #[derive(Deserialize)]
 struct Config {
@@ -72,10 +75,11 @@ impl Debug for PaletteNode {
 
 impl PaletteNode {
     fn new(name: String, path: PathBuf) -> Result<Self, Error> {
-        println!("{}", name);
+        let reader = Decoder::new(BufReader::new(File::open(path)?)).read_info()?;
+        println!("{}, {:#?}", name, reader.info().color_type);
         Ok(Self {
             name,
-            reader: Decoder::new(BufReader::new(File::open(path)?)).read_info()?,
+            reader,
             character_maps: vec![],
         })
     }
@@ -95,21 +99,20 @@ impl PaletteNode {
     }
 
     fn digest(&mut self, digests: &mut Digests) -> Result<(), Error> {
-        digests.palettes.push(self.as_palette()?);
-        for character_map in &self.character_maps {
-            character_map.digest(digests)?;
+        let palette = self.as_palette()?;
+        for character_map in &mut self.character_maps {
+            character_map.digest(digests, &palette)?;
         }
+        digests.palettes.push(palette);
         Ok(())
     }
 
     fn as_palette(&mut self) -> Result<Palette, Error> {
-        let mut buf = vec![0; self.reader.output_buffer_size().unwrap()];
-        self.reader.next_frame(&mut buf)?;
+        let buf = read_to_rgb_255(&mut self.reader)?;
         let colors = buf
             .chunks_exact(3)
-            .map(|c| Color::new(c[0] / 8, c[1] / 8, c[2] / 8))
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|message| Error::Custom(message))?;
+            .map(|c| Color::new(c[0] / 8, c[1] / 8, c[2] / 8).unwrap())
+            .collect();
         Ok(Palette::with_colors(&self.name, colors))
     }
 }
@@ -128,10 +131,11 @@ impl Debug for CharacterNode {
 
 impl CharacterNode {
     fn new(name: String, path: PathBuf) -> Result<Self, Error> {
-        println!("{}", name);
+        let reader = Decoder::new(BufReader::new(File::open(path)?)).read_info()?;
+        println!("{}, {:#?}", name, reader.info().color_type);
         Ok(Self {
             name,
-            reader: Decoder::new(BufReader::new(File::open(path)?)).read_info()?,
+            reader,
             screens: vec![],
         })
     }
@@ -150,12 +154,33 @@ impl CharacterNode {
         Ok(())
     }
 
-    fn digest(&self, digests: &mut Digests) -> Result<(), Error> {
-        digests.characters.push((&self.reader).try_into()?);
+    fn digest(&mut self, digests: &mut Digests, palette: &Palette) -> Result<(), Error> {
+        let character_data = self.as_character_data(palette)?;
         for screen in &self.screens {
             screen.digest(digests)?;
         }
+        digests.characters.push(character_data);
         Ok(())
+    }
+
+    fn as_character_data(&mut self, palette: &Palette) -> Result<CharacterData, Error> {
+        let buf = read_to_rgb_255(&mut self.reader)?;
+        let tiles = buf
+            .chunks_exact(3)
+            .map(|c| {
+                Color::new(c[0] / 8, c[1] / 8, c[2] / 8).unwrap()
+            })
+            .map(|c| palette.iter().position(|color| color == &c)
+                .map(|idx| idx as u8)
+                .ok_or(Error::Custom(format!("Palette color {} not found", c))))
+            .collect::<Result<Vec<_>, Error>>()?
+            .into_iter()
+            .tiled()
+            .tile_chunked()
+            .into_iter()
+            .map(|tile_data| Tile::new(tile_data))
+            .collect();
+        Ok(CharacterData::with_tiles(self.name.clone(), tiles))
     }
 }
 
@@ -172,7 +197,6 @@ impl Debug for ScreenNode {
 
 impl ScreenNode {
     fn new(name: String, path: PathBuf) -> Result<Self, Error> {
-        println!("{}", name);
         Ok(Self {
             name,
             reader: Decoder::new(BufReader::new(File::open(path)?)).read_info()?,
@@ -234,17 +258,18 @@ impl TryFrom<PathBuf> for Project {
 
 #[cfg(test)]
 mod tests {
+    use crate::color::Color;
     use crate::project::{PaletteNode, Project};
     use std::path::PathBuf;
-    use crate::color::Color;
 
     #[test]
     fn read_project() {
-        let project: Project = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        let mut project: Project = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("resources")
             .try_into()
             .expect("Could not open project");
         println!("{project:?}");
+        project.digest().expect("Could not digest project");
     }
 
     #[test]
