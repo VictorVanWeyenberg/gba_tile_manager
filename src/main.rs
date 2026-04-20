@@ -7,7 +7,6 @@ mod character_data;
 mod color;
 mod error;
 mod palette;
-mod png_util;
 mod project;
 mod savable;
 mod screen;
@@ -20,5 +19,5 @@ fn main() {
         .try_into()
         .expect("Failed to load project.");
     println!("Loaded project in {}.", project.name());
-    let digest = project.digest().expect("Could not digest project.");
+    project.digest().expect("Could not digest project.");
 }

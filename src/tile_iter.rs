@@ -1,5 +1,3 @@
-use crate::tile::Tile;
-
 const IMAGE_WIDTH: usize = 256;
 const TILE_WIDTH: usize = 8;
 const TILE_HEIGHT: usize = 8;

@@ -68,14 +68,6 @@ impl Savable for ScreenData {
     }
 }
 
-impl TryFrom<&png::Reader<BufReader<File>>> for ScreenData {
-    type Error = Error;
-
-    fn try_from(reader: &png::Reader<BufReader<File>>) -> Result<Self, Self::Error> {
-        todo!("Screen data from PNG.")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::character::Character;

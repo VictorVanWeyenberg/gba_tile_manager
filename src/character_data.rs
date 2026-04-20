@@ -1,8 +1,6 @@
-use crate::error::Error;
 use crate::savable::Savable;
 use crate::tile::Tile;
-use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::Read;
 use std::ops::Deref;
 
 #[derive(Debug, Default, Eq, PartialEq)]

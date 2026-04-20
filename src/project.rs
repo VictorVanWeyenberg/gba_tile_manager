@@ -3,16 +3,14 @@ use crate::character_data::CharacterData;
 use crate::color::Color;
 use crate::error::Error;
 use crate::palette::Palette;
-use crate::png_util::read_to_rgb_255;
 use crate::screen::ScreenData;
 use crate::tile::Tile;
 use crate::tile_iter::TiledIterExt;
-use png::Decoder;
+use image::{DynamicImage, ImageReader};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
-use std::io::BufReader;
 use std::path::PathBuf;
 
 #[derive(Deserialize)]
@@ -64,7 +62,7 @@ impl Project {
 
 pub struct PaletteNode {
     name: String,
-    reader: png::Reader<BufReader<File>>,
+    image: image::DynamicImage,
     character_maps: Vec<CharacterNode>,
 }
 
@@ -76,21 +74,19 @@ impl Debug for PaletteNode {
 
 impl PaletteNode {
     fn new(name: String, path: PathBuf) -> Result<Self, Error> {
-        let reader = Decoder::new(BufReader::new(File::open(path)?)).read_info()?;
-        println!("{}, {:#?}", name, reader.info().color_type);
+        let image = ImageReader::open(&path)?.decode()?;
         Ok(Self {
             name,
-            reader,
+            image,
             character_maps: vec![],
         })
     }
 
     fn verify(&self) -> Result<(), Error> {
-        let info = self.reader.info();
-        if info.width != 16 || info.height != 16 {
+        if self.image.width() != 16 || self.image.height() != 16 {
             return Err(Error::Custom(format!(
                 "Palette dimensions off ({}x{}) != (16x16)",
-                info.width, info.height
+                self.image.width(), self.image.height()
             )));
         }
         for character_map in &self.character_maps {
@@ -109,8 +105,7 @@ impl PaletteNode {
     }
 
     fn as_palette(&mut self) -> Result<Palette, Error> {
-        let buf = read_to_rgb_255(&mut self.reader)?;
-        let colors = buf
+        let colors = self.image.to_rgb8()
             .chunks_exact(3)
             .map(|c| Color::new(c[0] / 8, c[1] / 8, c[2] / 8).unwrap())
             .collect();
@@ -120,7 +115,7 @@ impl PaletteNode {
 
 pub struct CharacterNode {
     name: String,
-    reader: png::Reader<BufReader<File>>,
+    image: DynamicImage,
     screens: Vec<ScreenNode>,
 }
 
@@ -132,21 +127,19 @@ impl Debug for CharacterNode {
 
 impl CharacterNode {
     fn new(name: String, path: PathBuf) -> Result<Self, Error> {
-        let reader = Decoder::new(BufReader::new(File::open(path)?)).read_info()?;
-        println!("{}, {:#?}", name, reader.info().color_type);
+        let image = ImageReader::open(&path)?.decode()?;
         Ok(Self {
             name,
-            reader,
+            image,
             screens: vec![],
         })
     }
 
     fn verify(&self) -> Result<(), Error> {
-        let info = self.reader.info();
-        if info.width != 256 || info.height != 256 {
+        if self.image.width() != 256 || self.image.height() != 256 {
             return Err(Error::Custom(format!(
                 "Character data dimensions off ({}x{}) != (256x256)",
-                info.width, info.height
+                self.image.width(), self.image.height()
             )));
         }
         for screen in &self.screens {
@@ -165,7 +158,7 @@ impl CharacterNode {
     }
 
     fn as_character_data(&mut self, palette: &Palette) -> Result<CharacterData, Error> {
-        let buf = read_to_rgb_255(&mut self.reader)?;
+        let buf = self.image.to_rgb8().into_raw();
         let pal_idx = colors_to_palette_index(buf, palette)?;
         let tiles = tiles_from_pal_idx(pal_idx);
         Ok(CharacterData::with_tiles(self.name.clone(), tiles))
@@ -174,7 +167,7 @@ impl CharacterNode {
 
 pub struct ScreenNode {
     name: String,
-    reader: png::Reader<BufReader<File>>,
+    image: DynamicImage,
 }
 
 impl Debug for ScreenNode {
@@ -187,23 +180,22 @@ impl ScreenNode {
     fn new(name: String, path: PathBuf) -> Result<Self, Error> {
         Ok(Self {
             name,
-            reader: Decoder::new(BufReader::new(File::open(path)?)).read_info()?,
+            image: ImageReader::open(&path)?.decode()?,
         })
     }
 
     fn verify(&self) -> Result<(), Error> {
-        let info = self.reader.info();
-        if info.width != 256 || info.height != 256 {
+        if self.image.width() != 256 || self.image.height() != 256 {
             return Err(Error::Custom(format!(
                 "Screen data dimensions off ({}x{}) != (256x256)",
-                info.width, info.height
+                self.image.width(), self.image.height()
             )));
         }
         Ok(())
     }
 
     fn as_screen_data(&mut self, palette: &Palette, character_data: &CharacterData) -> Result<ScreenData, Error> {
-        let buf = read_to_rgb_255(&mut self.reader)?;
+        let buf = self.image.to_rgb8().into_raw();
         let pal_idx = colors_to_palette_index(buf, palette)?;
         let tiles = tiles_from_pal_idx(pal_idx);
         let characters = tiles.into_iter()
@@ -306,12 +298,12 @@ impl TryFrom<PathBuf> for Project {
 
 #[cfg(test)]
 mod tests {
+    use crate::character_data::CharacterData;
     use crate::color::Color;
     use crate::palette::Palette;
     use crate::project::{CharacterNode, PaletteNode, Project, ScreenNode};
-    use std::path::PathBuf;
-    use crate::character_data::CharacterData;
     use crate::screen::ScreenData;
+    use std::path::PathBuf;
 
     #[test]
     fn read_project() {

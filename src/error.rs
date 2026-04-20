@@ -5,7 +5,7 @@ pub enum Error {
     IO(std::io::Error),
     Serde(serde_json::Error),
     Custom(String),
-    Png(png::DecodingError),
+    Image(image::ImageError),
 }
 
 impl std::error::Error for Error {}
@@ -34,8 +34,8 @@ impl From<&str> for Error {
     }
 }
 
-impl From<png::DecodingError> for Error {
-    fn from(value: png::DecodingError) -> Self {
-        Error::Png(value)
+impl From<image::ImageError> for Error {
+    fn from(value: image::ImageError) -> Self {
+        Error::Image(value)
     }
 }
