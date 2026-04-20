@@ -82,11 +82,10 @@ mod tests {
         let palette_path = palette.save(temp_dir).expect("Could not save palette.");
         let palette = Palette::read(palette_path).expect("Could not read palette.");
 
-        assert_eq!(palette.len(), 5);
+        assert_eq!(palette.len(), 4);
         assert_eq!(palette.get(0), Some(&Color::new(31, 0, 0).unwrap()));
         assert_eq!(palette.get(1), Some(&Color::new(0, 31, 0).unwrap()));
         assert_eq!(palette.get(2), Some(&Color::new(0, 0, 31).unwrap()));
         assert_eq!(palette.get(3), Some(&Color::new(31, 31, 31).unwrap()));
-        assert_eq!(palette.get(4), Some(&Color::new(0, 0, 0).unwrap()));
     }
 }

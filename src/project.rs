@@ -224,6 +224,7 @@ fn tiles_to_characters(needle: Tile, haystack: &CharacterData) -> Result<Charact
             return Ok(Character::new(idx, true, true, 0));
         }
     }
+    needle.chunks_exact(8).for_each(|chunk| println!("{chunk:?}"));
     Err(Error::Custom("Tile not found".to_string()))
 }
 
