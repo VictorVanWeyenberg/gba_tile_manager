@@ -220,8 +220,8 @@ fn tiles_to_characters(needle: Tile, haystack: &CharacterData) -> Result<Charact
         if &flip_tile(&needle, false, true) == tile {
             return Ok(Character::new(idx, false, true, 0));
         }
-        if &flip_tile(&needle, false, true) == tile {
-            return Ok(Character::new(idx, false, true, 0));
+        if &flip_tile(&needle, true, true) == tile {
+            return Ok(Character::new(idx, true, true, 0));
         }
     }
     Err(Error::Custom("Tile not found".to_string()))
@@ -298,6 +298,7 @@ impl TryFrom<PathBuf> for Project {
 
 #[cfg(test)]
 mod tests {
+    use crate::character::Character;
     use crate::character_data::CharacterData;
     use crate::color::Color;
     use crate::palette::Palette;
@@ -374,13 +375,33 @@ mod tests {
         let screen_data = read_screen_data(&palette, &character_data);
         assert_eq!(screen_data.len(), 1024);
         let top_left = screen_data.get(0).unwrap();
-        let top_right = screen_data.get(31).unwrap();
-        let bottom_left = screen_data.get(1023-31).unwrap();
-        let bottom_right = screen_data.get(1023).unwrap();
+        let top_right = screen_data.get(29).unwrap();
+        let bottom_left = screen_data.get(19*32).unwrap();
+        let bottom_right = screen_data.get(19*32+29).unwrap();
 
-        assert_eq!(top_left.tile_number(), 1);
-        assert_eq!(top_right.tile_number(), 1);
-        assert_eq!(bottom_left.tile_number(), 1);
-        assert_eq!(bottom_right.tile_number(), 1);
+        assert_eq!(&Character {
+            tile_number: 1,
+            horizontal_flip: false,
+            vertical_flip: false,
+            palette_number: 0,
+        }, top_left);
+        assert_eq!(&Character {
+            tile_number: 1,
+            horizontal_flip: true,
+            vertical_flip: false,
+            palette_number: 0,
+        }, top_right);
+        assert_eq!(&Character {
+            tile_number: 1,
+            horizontal_flip: false,
+            vertical_flip: true,
+            palette_number: 0,
+        }, bottom_left);
+        assert_eq!(&Character {
+            tile_number: 1,
+            horizontal_flip: true,
+            vertical_flip: true,
+            palette_number: 0,
+        }, bottom_right);
     }
 }

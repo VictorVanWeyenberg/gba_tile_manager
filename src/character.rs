@@ -2,10 +2,10 @@ use std::ops::{Shl, Shr};
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct Character {
-    tile_number: usize,
-    horizontal_flip: bool,
-    vertical_flip: bool,
-    palette_number: usize,
+    pub tile_number: usize,
+    pub horizontal_flip: bool,
+    pub vertical_flip: bool,
+    pub palette_number: usize,
 }
 
 impl Character {
