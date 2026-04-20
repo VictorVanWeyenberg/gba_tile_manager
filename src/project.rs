@@ -1,8 +1,11 @@
+use crate::character::Character;
 use crate::character_data::CharacterData;
 use crate::color::Color;
 use crate::error::Error;
 use crate::palette::Palette;
+use crate::png_util::read_to_rgb_255;
 use crate::screen::ScreenData;
+use crate::tile::Tile;
 use crate::tile_iter::TiledIterExt;
 use png::Decoder;
 use serde::Deserialize;
@@ -11,8 +14,6 @@ use std::fmt::Debug;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
-use crate::png_util::read_to_rgb_255;
-use crate::tile::Tile;
 
 #[derive(Deserialize)]
 struct Config {
@@ -156,8 +157,8 @@ impl CharacterNode {
 
     fn digest(&mut self, digests: &mut Digests, palette: &Palette) -> Result<(), Error> {
         let character_data = self.as_character_data(palette)?;
-        for screen in &self.screens {
-            screen.digest(digests)?;
+        for screen in &mut self.screens {
+            screen.digest(digests, palette, &character_data)?;
         }
         digests.characters.push(character_data);
         Ok(())
@@ -165,21 +166,8 @@ impl CharacterNode {
 
     fn as_character_data(&mut self, palette: &Palette) -> Result<CharacterData, Error> {
         let buf = read_to_rgb_255(&mut self.reader)?;
-        let tiles = buf
-            .chunks_exact(3)
-            .map(|c| {
-                Color::new(c[0] / 8, c[1] / 8, c[2] / 8).unwrap()
-            })
-            .map(|c| palette.iter().position(|color| color == &c)
-                .map(|idx| idx as u8)
-                .ok_or(Error::Custom(format!("Palette color {} not found", c))))
-            .collect::<Result<Vec<_>, Error>>()?
-            .into_iter()
-            .tiled()
-            .tile_chunked()
-            .into_iter()
-            .map(|tile_data| Tile::new(tile_data))
-            .collect();
+        let pal_idx = colors_to_palette_index(buf, palette)?;
+        let tiles = tiles_from_pal_idx(pal_idx);
         Ok(CharacterData::with_tiles(self.name.clone(), tiles))
     }
 }
@@ -214,9 +202,69 @@ impl ScreenNode {
         Ok(())
     }
 
-    fn digest(&self, digests: &mut Digests) -> Result<(), Error> {
-        Ok(digests.screens.push((&self.reader).try_into()?))
+    fn as_screen_data(&mut self, palette: &Palette, character_data: &CharacterData) -> Result<ScreenData, Error> {
+        let buf = read_to_rgb_255(&mut self.reader)?;
+        let pal_idx = colors_to_palette_index(buf, palette)?;
+        let tiles = tiles_from_pal_idx(pal_idx);
+        let characters = tiles.into_iter()
+            .map(|tile| tiles_to_characters(tile, character_data))
+            .collect::<Result<Vec<_>, Error>>()?;
+        Ok(ScreenData::with_characters(&self.name, characters))
     }
+
+    fn digest(&mut self, digests: &mut Digests, palette: &Palette, character_data: &CharacterData) -> Result<(), Error> {
+        Ok(digests.screens.push(self.as_screen_data(palette, character_data)?))
+    }
+}
+
+fn tiles_to_characters(needle: Tile, haystack: &CharacterData) -> Result<Character, Error> {
+    for (idx, tile) in haystack.iter().enumerate() {
+        if &needle == tile {
+            return Ok(Character::new(idx, false, false, 0));
+        }
+        if &flip_tile(&needle, true, false) == tile {
+            return Ok(Character::new(idx, true, false, 0));
+        }
+        if &flip_tile(&needle, false, true) == tile {
+            return Ok(Character::new(idx, false, true, 0));
+        }
+        if &flip_tile(&needle, false, true) == tile {
+            return Ok(Character::new(idx, false, true, 0));
+        }
+    }
+    Err(Error::Custom("Tile not found".to_string()))
+}
+
+fn flip_tile(tile: &Tile, hflip: bool, vflip: bool) -> Tile {
+    let mut result = [0u8; 64];
+    for y in 0..8 {
+        for x in 0..8 {
+            let src_x = if hflip { 7 - x } else { x };
+            let src_y = if vflip { 7 - y } else { y };
+            result[y * 8 + x] = tile[src_y * 8 + src_x];
+        }
+    }
+    Tile::new(result)
+}
+
+fn colors_to_palette_index(rgbs: Vec<u8>, palette: &Palette) -> Result<Vec<u8>, Error> {
+    Ok(rgbs
+        .chunks_exact(3)
+        .map(|c| Color::new(c[0] / 8, c[1] / 8, c[2] / 8).unwrap())
+        .map(|c| palette.iter().position(|color| color == &c)
+            .map(|idx| idx as u8)
+            .ok_or(Error::Custom(format!("Palette color {} not found", c))))
+        .collect::<Result<Vec<_>, Error>>()?)
+}
+
+fn tiles_from_pal_idx(pal_idx: Vec<u8>) -> Vec<Tile> {
+    pal_idx
+        .into_iter()
+        .tiled()
+        .tile_chunked()
+        .into_iter()
+        .map(|tile_data| Tile::new(tile_data))
+        .collect()
 }
 
 impl TryFrom<PathBuf> for Project {
@@ -259,10 +307,11 @@ impl TryFrom<PathBuf> for Project {
 #[cfg(test)]
 mod tests {
     use crate::color::Color;
-    use crate::project::{CharacterNode, PaletteNode, Project};
+    use crate::palette::Palette;
+    use crate::project::{CharacterNode, PaletteNode, Project, ScreenNode};
     use std::path::PathBuf;
     use crate::character_data::CharacterData;
-    use crate::palette::Palette;
+    use crate::screen::ScreenData;
 
     #[test]
     fn read_project() {
@@ -282,6 +331,22 @@ mod tests {
         palette.as_palette().unwrap()
     }
 
+    fn read_character_data(file_name: &str, palette: &Palette) -> CharacterData {
+        let character_data =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(&format!("resources/{file_name}"));
+        let mut character_data = CharacterNode::new(file_name.to_string(), character_data)
+            .expect("Could not create character data");
+        character_data.as_character_data(palette).unwrap()
+    }
+
+    fn read_screen_data(palette: &Palette, character_data: &CharacterData) -> ScreenData {
+        let screen_data =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/empty_art_bg0.png");
+        let mut screen_data = ScreenNode::new("empty_art_bg0.png".to_string(), screen_data)
+            .expect("Could not create screen data");
+        screen_data.as_screen_data(palette, character_data).unwrap()
+    }
+
     #[test]
     fn palette_from_image() {
         let palette = read_palette();
@@ -297,12 +362,7 @@ mod tests {
     #[test]
     fn character_data_from_image() {
         let palette = read_palette();
-
-        let character_data =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/bg1_empty_art.png");
-        let mut character_data = CharacterNode::new("bg1_empty_art.png".into(), character_data)
-            .expect("Could not create character data");
-        let character_data = character_data.as_character_data(&palette).unwrap();
+        let character_data = read_character_data("bg1_empty_art.png", &palette);
 
         assert_eq!(character_data.len(), 100);
         let tile = character_data.get(14).unwrap();
@@ -313,5 +373,22 @@ mod tests {
                 assert_eq!(tile[idx], 0, "{idx}");
             }
         }
+    }
+
+    #[test]
+    fn screen_data_from_image() {
+        let palette = read_palette();
+        let character_data = read_character_data("bg0_empty_art.png", &palette);
+        let screen_data = read_screen_data(&palette, &character_data);
+        assert_eq!(screen_data.len(), 1024);
+        let top_left = screen_data.get(0).unwrap();
+        let top_right = screen_data.get(31).unwrap();
+        let bottom_left = screen_data.get(1023-31).unwrap();
+        let bottom_right = screen_data.get(1023).unwrap();
+
+        assert_eq!(top_left.tile_number(), 1);
+        assert_eq!(top_right.tile_number(), 1);
+        assert_eq!(bottom_left.tile_number(), 1);
+        assert_eq!(bottom_right.tile_number(), 1);
     }
 }
