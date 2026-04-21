@@ -37,10 +37,6 @@ impl Savable for CharacterData {
         &self.name
     }
 
-    fn suffix() -> &'static str {
-        "_character_data.bin"
-    }
-
     fn create<R: Read>(name: impl ToString, mut data: R) -> Self {
         let mut buf = [0u8; 32];
         let mut tiles = vec![];

@@ -1,5 +1,6 @@
 use crate::project::Project;
 use std::env;
+use crate::error::Error;
 
 mod boop;
 mod character;
@@ -13,11 +14,9 @@ mod screen;
 mod tile;
 mod tile_iter;
 
-fn main() {
-    let mut project: Project = env::current_dir()
-        .expect("Could not get current working directory.")
-        .try_into()
-        .expect("Failed to load project.");
+fn main() -> Result<(), Error> {
+    let path = env::current_dir().expect("Could not get current working directory.");
+    let mut project: Project = path.clone().try_into().expect("Failed to load project.");
     println!("Loaded project in {}.", project.name());
-    project.digest().expect("Could not digest project.");
+    project.digest()?.save(path)
 }

@@ -34,10 +34,6 @@ impl Savable for Palette {
         &self.name
     }
 
-    fn suffix() -> &'static str {
-        "_palette.bin"
-    }
-
     fn create<R: Read>(name: impl ToString, mut data: R) -> Self {
         let mut buf = [0u8; 2];
         let mut colors = vec![];

@@ -3,6 +3,7 @@ use crate::character_data::CharacterData;
 use crate::color::Color;
 use crate::error::Error;
 use crate::palette::Palette;
+use crate::savable::Savable;
 use crate::screen::ScreenData;
 use crate::tile::Tile;
 use crate::tile_iter::TiledIterExt;
@@ -31,6 +32,21 @@ pub struct Digests {
     palettes: Vec<Palette>,
     characters: Vec<CharacterData>,
     screens: Vec<ScreenData>,
+}
+
+impl Digests {
+    pub fn save(&self, path: PathBuf) -> Result<(), Error> {
+        for palette in &self.palettes {
+            palette.save(path.clone())?;
+        }
+        for character_data in &self.characters {
+            character_data.save(path.clone())?;
+        }
+        for screen_data in &self.screens {
+            screen_data.save(path.clone())?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -86,7 +102,8 @@ impl PaletteNode {
         if self.image.width() != 16 || self.image.height() != 16 {
             return Err(Error::Custom(format!(
                 "Palette dimensions off ({}x{}) != (16x16)",
-                self.image.width(), self.image.height()
+                self.image.width(),
+                self.image.height()
             )));
         }
         for character_map in &self.character_maps {
@@ -105,7 +122,9 @@ impl PaletteNode {
     }
 
     fn as_palette(&mut self) -> Result<Palette, Error> {
-        let colors = self.image.to_rgb8()
+        let colors = self
+            .image
+            .to_rgb8()
             .chunks_exact(3)
             .map(|c| Color::new(c[0] / 8, c[1] / 8, c[2] / 8).unwrap())
             .collect();
@@ -139,7 +158,8 @@ impl CharacterNode {
         if self.image.width() != 256 || self.image.height() != 256 {
             return Err(Error::Custom(format!(
                 "Character data dimensions off ({}x{}) != (256x256)",
-                self.image.width(), self.image.height()
+                self.image.width(),
+                self.image.height()
             )));
         }
         for screen in &self.screens {
@@ -177,9 +197,9 @@ impl Debug for ScreenNode {
 }
 
 impl ScreenNode {
-    fn new(name: String, path: PathBuf) -> Result<Self, Error> {
+    fn new(name: impl ToString, path: PathBuf) -> Result<Self, Error> {
         Ok(Self {
-            name,
+            name: name.to_string(),
             image: ImageReader::open(&path)?.decode()?,
         })
     }
@@ -188,24 +208,37 @@ impl ScreenNode {
         if self.image.width() != 256 || self.image.height() != 256 {
             return Err(Error::Custom(format!(
                 "Screen data dimensions off ({}x{}) != (256x256)",
-                self.image.width(), self.image.height()
+                self.image.width(),
+                self.image.height()
             )));
         }
         Ok(())
     }
 
-    fn as_screen_data(&mut self, palette: &Palette, character_data: &CharacterData) -> Result<ScreenData, Error> {
+    fn as_screen_data(
+        &mut self,
+        palette: &Palette,
+        character_data: &CharacterData,
+    ) -> Result<ScreenData, Error> {
         let buf = self.image.to_rgb8().into_raw();
         let pal_idx = colors_to_palette_index(buf, palette)?;
         let tiles = tiles_from_pal_idx(pal_idx);
-        let characters = tiles.into_iter()
+        let characters = tiles
+            .into_iter()
             .map(|tile| tiles_to_characters(tile, character_data))
             .collect::<Result<Vec<_>, Error>>()?;
         Ok(ScreenData::with_characters(&self.name, characters))
     }
 
-    fn digest(&mut self, digests: &mut Digests, palette: &Palette, character_data: &CharacterData) -> Result<(), Error> {
-        Ok(digests.screens.push(self.as_screen_data(palette, character_data)?))
+    fn digest(
+        &mut self,
+        digests: &mut Digests,
+        palette: &Palette,
+        character_data: &CharacterData,
+    ) -> Result<(), Error> {
+        Ok(digests
+            .screens
+            .push(self.as_screen_data(palette, character_data)?))
     }
 }
 
@@ -224,7 +257,9 @@ fn tiles_to_characters(needle: Tile, haystack: &CharacterData) -> Result<Charact
             return Ok(Character::new(idx, true, true, 0));
         }
     }
-    needle.chunks_exact(8).for_each(|chunk| println!("{chunk:?}"));
+    needle
+        .chunks_exact(8)
+        .for_each(|chunk| println!("{chunk:?}"));
     Err(Error::Custom("Tile not found".to_string()))
 }
 
@@ -244,9 +279,13 @@ fn colors_to_palette_index(rgbs: Vec<u8>, palette: &Palette) -> Result<Vec<u8>, 
     Ok(rgbs
         .chunks_exact(3)
         .map(|c| Color::new(c[0] / 8, c[1] / 8, c[2] / 8).unwrap())
-        .map(|c| palette.iter().position(|color| color == &c)
-            .map(|idx| idx as u8)
-            .ok_or(Error::Custom(format!("Palette color {} not found", c))))
+        .map(|c| {
+            palette
+                .iter()
+                .position(|color| color == &c)
+                .map(|idx| idx as u8)
+                .ok_or(Error::Custom(format!("Palette color {} not found", c)))
+        })
         .collect::<Result<Vec<_>, Error>>()?)
 }
 
@@ -260,6 +299,16 @@ fn tiles_from_pal_idx(pal_idx: Vec<u8>) -> Vec<Tile> {
         .collect()
 }
 
+fn verify_is_png_get_file_name(file_name: String) -> Result<String, Error> {
+    if file_name.ends_with(".png") {
+        Ok(file_name.replace(".png", ""))
+    } else {
+        Err(Error::Custom(format!(
+            "File `{file_name}` is not a png file."
+        )))
+    }
+}
+
 impl TryFrom<PathBuf> for Project {
     type Error = Error;
 
@@ -270,22 +319,22 @@ impl TryFrom<PathBuf> for Project {
         let mut screens: HashMap<String, HashMap<String, Vec<String>>> = HashMap::new();
         for screen in config.screens {
             screens
-                .entry(screen.palette)
+                .entry(verify_is_png_get_file_name(screen.palette)?)
                 .or_insert(HashMap::new())
-                .entry(screen.character)
+                .entry(verify_is_png_get_file_name(screen.character)?)
                 .or_insert(Vec::new())
-                .push(screen.screen);
+                .push(verify_is_png_get_file_name(screen.screen)?);
         }
         let mut palettes = vec![];
         for (palette, characters) in screens {
-            let mut palette = PaletteNode::new(palette.clone(), directory.join(palette))?;
+            let path = directory.join(format!("{palette}.png"));
+            let mut palette = PaletteNode::new(palette, path)?;
             for (character, screens) in characters {
-                let mut character =
-                    CharacterNode::new(character.clone(), directory.join(character))?;
+                let path = directory.join(format!("{character}.png"));
+                let mut character = CharacterNode::new(character, path)?;
                 for screen in screens {
-                    character
-                        .screens
-                        .push(ScreenNode::new(screen.clone(), directory.join(screen))?);
+                    let path = directory.join(format!("{screen}.png"));
+                    character.screens.push(ScreenNode::new(screen, path)?);
                 }
                 palette.character_maps.push(character);
             }
@@ -377,32 +426,44 @@ mod tests {
         assert_eq!(screen_data.len(), 1024);
         let top_left = screen_data.get(0).unwrap();
         let top_right = screen_data.get(29).unwrap();
-        let bottom_left = screen_data.get(19*32).unwrap();
-        let bottom_right = screen_data.get(19*32+29).unwrap();
+        let bottom_left = screen_data.get(19 * 32).unwrap();
+        let bottom_right = screen_data.get(19 * 32 + 29).unwrap();
 
-        assert_eq!(&Character {
-            tile_number: 1,
-            horizontal_flip: false,
-            vertical_flip: false,
-            palette_number: 0,
-        }, top_left);
-        assert_eq!(&Character {
-            tile_number: 1,
-            horizontal_flip: true,
-            vertical_flip: false,
-            palette_number: 0,
-        }, top_right);
-        assert_eq!(&Character {
-            tile_number: 1,
-            horizontal_flip: false,
-            vertical_flip: true,
-            palette_number: 0,
-        }, bottom_left);
-        assert_eq!(&Character {
-            tile_number: 1,
-            horizontal_flip: true,
-            vertical_flip: true,
-            palette_number: 0,
-        }, bottom_right);
+        assert_eq!(
+            &Character {
+                tile_number: 1,
+                horizontal_flip: false,
+                vertical_flip: false,
+                palette_number: 0,
+            },
+            top_left
+        );
+        assert_eq!(
+            &Character {
+                tile_number: 1,
+                horizontal_flip: true,
+                vertical_flip: false,
+                palette_number: 0,
+            },
+            top_right
+        );
+        assert_eq!(
+            &Character {
+                tile_number: 1,
+                horizontal_flip: false,
+                vertical_flip: true,
+                palette_number: 0,
+            },
+            bottom_left
+        );
+        assert_eq!(
+            &Character {
+                tile_number: 1,
+                horizontal_flip: true,
+                vertical_flip: true,
+                palette_number: 0,
+            },
+            bottom_right
+        );
     }
 }

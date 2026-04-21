@@ -1,8 +1,6 @@
 use crate::character::Character;
-use crate::error::Error;
 use crate::savable::Savable;
-use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::Read;
 use std::ops::Deref;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -30,10 +28,6 @@ impl Deref for ScreenData {
 impl Savable for ScreenData {
     fn name(&self) -> &str {
         &self.name
-    }
-
-    fn suffix() -> &'static str {
-        "_screen_data.bin"
     }
 
     fn create<R: Read>(name: impl ToString, mut data: R) -> Self {
