@@ -430,7 +430,7 @@ mod tests {
         let palette = read_palette();
         let character_data = read_character_data("bg0_empty_art.png", &palette);
         let screen_data = read_screen_data(&palette, &character_data);
-        assert_eq!(screen_data.len(), 1024);
+        assert_eq!(screen_data.len(), 32 * 20 - 2);
         let top_left = screen_data.get(0).unwrap();
         let top_right = screen_data.get(29).unwrap();
         let bottom_left = screen_data.get(19 * 32).unwrap();

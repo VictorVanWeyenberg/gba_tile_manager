@@ -10,7 +10,16 @@ pub struct ScreenData {
 }
 
 impl ScreenData {
-    pub fn with_characters(name: &str, characters: Vec<Character>) -> Self {
+    pub fn with_characters(name: &str, mut characters: Vec<Character>) -> Self {
+        while let Some(Character {
+            tile_number: 0,
+            horizontal_flip: false,
+            vertical_flip: false,
+            palette_number: 0,
+        }) = characters.last()
+        {
+            characters.pop();
+        }
         Self {
             name: name.to_string(),
             characters,
@@ -49,7 +58,7 @@ impl Savable for ScreenData {
         let bytes: Vec<u8> = self
             .characters
             .iter()
-            .map::<[u8; 2], _>(|character|character.into())
+            .map::<[u8; 2], _>(|character| character.into())
             .flatten()
             .collect();
 
@@ -90,39 +99,18 @@ mod tests {
         let screen_data_path = screen.save(temp_dir).expect("Could not save screen data.");
         let screen = ScreenData::read(screen_data_path).expect("Could not read screen data.");
 
-        assert_eq!(
-            &screen[0],
-            &Character::new(0, false, false, 0)
-        );
-        assert_eq!(
-            &screen[1],
-            &Character::new(1, false, false, 1)
-        );
-        assert_eq!(
-            &screen[2],
-            &Character::new(2, false, false, 2)
-        );
-        assert_eq!(
-            &screen[3],
-            &Character::new(3, false, false, 3)
-        );
-        assert_eq!(
-            &screen[4],
-            &Character::new(4, false, false, 4)
-        );
-        assert_eq!(
-            &screen[33],
-            &Character::new(5, false, false, 5)
-        );
+        assert_eq!(&screen[0], &Character::new(0, false, false, 0));
+        assert_eq!(&screen[1], &Character::new(1, false, false, 1));
+        assert_eq!(&screen[2], &Character::new(2, false, false, 2));
+        assert_eq!(&screen[3], &Character::new(3, false, false, 3));
+        assert_eq!(&screen[4], &Character::new(4, false, false, 4));
+        assert_eq!(&screen[33], &Character::new(5, false, false, 5));
 
-        for idx in 0..32*32 {
+        for idx in 0..32 * 32 {
             if idx < 5 || idx == 33 {
-                continue
+                continue;
             }
-            assert_eq!(
-                &screen[idx],
-                &Character::new(0, false, false, 0)
-            )
+            assert_eq!(&screen[idx], &Character::new(0, false, false, 0))
         }
     }
 }
