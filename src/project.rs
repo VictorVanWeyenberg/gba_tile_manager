@@ -257,10 +257,17 @@ fn tiles_to_characters(needle: Tile, haystack: &CharacterData) -> Result<Charact
             return Ok(Character::new(idx, true, true, 0));
         }
     }
-    needle
+    let text_tile = needle
         .chunks_exact(8)
-        .for_each(|chunk| println!("{chunk:?}"));
-    Err(Error::Custom("Tile not found".to_string()))
+        .map(|chunk| format!("{chunk:?}"))
+        .reduce(|a, b| format!("{a:?}\n{b:?}"))
+        .unwrap_or_else(|| String::from(""));
+    let character_data_name = haystack.name();
+    Err(Error::Custom(format!(
+        "Tile not found in character data {character_data_name}\
+        \
+        {text_tile}"
+    )))
 }
 
 fn flip_tile(tile: &Tile, hflip: bool, vflip: bool) -> Tile {
