@@ -74,3 +74,11 @@ Bit (LE)    Expl.
 72-79       Boop args index. The index in the args file where the boop's args are located.
 80-87       Boop args len. The amount of args from the CSV file.
 ```
+
+# Example
+
+```
+cargo build --release
+./target/release/gba_tile_manager --help
+./target/release/gba_tile_manager -i resources/ -o bin/ -f
+```
