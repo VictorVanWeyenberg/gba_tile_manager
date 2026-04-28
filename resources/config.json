@@ -3,16 +3,16 @@
   "screens": [
     {
       "palette": "background_palette.png",
-      "character": "bg0_empty_art.png",
-      "screen": "empty_art_bg0.png"
+      "character": "empty_art/bg0/characters.png",
+      "screen": "empty_art/bg0/screen.png"
     },
     {
       "palette": "background_palette.png",
-      "character": "bg1_empty_art.png",
-      "screen": "empty_art_bg1.png"
+      "character": "empty_art/bg1/characters.png",
+      "screen": "empty_art/bg1/screen.png"
     }
   ],
   "boops": [
-    "empty_art_boops.csv"
+    "empty_art.csv"
   ]
 }

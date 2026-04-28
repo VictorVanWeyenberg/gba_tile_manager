@@ -3,8 +3,11 @@ use crate::character_data::CharacterData;
 use crate::color::Color;
 use crate::error::Error;
 use crate::palette::Palette;
+use crate::project::boop::BoopNode;
+use crate::project::character::CharacterNode;
 use crate::project::digest::Digests;
 use crate::project::palette::PaletteNode;
+use crate::project::screen::ScreenNode;
 use crate::savable::Savable;
 use crate::tile::Tile;
 use crate::tile_iter::TiledIterExt;
@@ -13,9 +16,6 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
 use std::path::PathBuf;
-use crate::project::boop::BoopNode;
-use crate::project::character::CharacterNode;
-use crate::project::screen::ScreenNode;
 
 mod boop;
 mod character;
@@ -58,6 +58,9 @@ impl Project {
         for palettes in &self.palettes {
             palettes.verify()?;
         }
+        for boop in &self.boops {
+            boop.verify()?;
+        }
         Ok(())
     }
 
@@ -65,6 +68,9 @@ impl Project {
         let mut digest = Digests::default();
         for palette in &mut self.palettes {
             palette.digest(&mut digest)?;
+        }
+        for boop in &mut self.boops {
+            boop.digest(&mut digest)?;
         }
         Ok(digest)
     }
@@ -146,11 +152,15 @@ fn verify_is_png_get_file_name(file_name: String) -> Result<String, Error> {
 
 fn determine_boop_file(directory: &PathBuf, file_name: String) -> Result<BoopNode, Error> {
     if !file_name.ends_with(".csv") {
-        return Err(Error::Custom("Expected boops file to be .csv.".to_string()))
+        return Err(Error::Custom(format!(
+            "Expected boops file to be .csv. {file_name}"
+        )));
     }
 
     let name = file_name.replace(".csv", "");
-    let file = File::open(directory.join(file_name))?;
+    let file = directory.join(file_name.clone());
+    let file =
+        File::open(file).map_err(|e| Error::IO(e, file_name))?;
     Ok(BoopNode::new(name, file))
 }
 
@@ -159,13 +169,22 @@ impl TryFrom<PathBuf> for Project {
 
     fn try_from(directory: PathBuf) -> Result<Self, Self::Error> {
         let config_path = directory.join("config.json");
-        let config: Config = serde_json::from_reader(File::open(config_path)?)?;
+        let config: Config = serde_json::from_reader(
+            File::open(config_path.clone())
+                .map_err(|e| Error::IO(e, config_path.to_str().unwrap().to_string()))?,
+        )?;
         let screens = screens_to_dep_graph(config.screens)?;
         let palettes = dep_graph_to_nodes(&directory, screens)?;
-        let boops = config.boops.into_iter()
+        let boops = config
+            .boops
+            .into_iter()
             .map(|boop| determine_boop_file(&directory, boop))
             .collect::<Result<Vec<_>, Error>>()?;
-        let project = Project { name: config.name, palettes, boops };
+        let project = Project {
+            name: config.name,
+            palettes,
+            boops,
+        };
         project.verify()?;
         Ok(project)
     }
@@ -186,7 +205,10 @@ fn screens_to_dep_graph(
     Ok(screens)
 }
 
-fn dep_graph_to_nodes(directory: &PathBuf, graph: HashMap<String, HashMap<String, Vec<String>>>) -> Result<Vec<PaletteNode>, Error> {
+fn dep_graph_to_nodes(
+    directory: &PathBuf,
+    graph: HashMap<String, HashMap<String, Vec<String>>>,
+) -> Result<Vec<PaletteNode>, Error> {
     let mut palettes = vec![];
     for (palette, characters) in graph {
         let path = directory.join(format!("{palette}.png"));
@@ -242,9 +264,9 @@ mod tests {
     }
 
     fn read_screen_data(palette: &Palette, character_data: &CharacterData) -> ScreenData {
-        let screen_data =
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/empty_art_bg0.png");
-        let mut screen_data = ScreenNode::new("empty_art_bg0.png".to_string(), screen_data)
+        let screen_data = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../resources/empty_art/bg0/screen.png");
+        let mut screen_data = ScreenNode::new("screen.png".to_string(), screen_data)
             .expect("Could not create screen data");
         screen_data.as_screen_data(palette, character_data).unwrap()
     }
@@ -264,7 +286,7 @@ mod tests {
     #[test]
     fn character_data_from_image() {
         let palette = read_palette();
-        let character_data = read_character_data("bg1_empty_art.png", &palette);
+        let character_data = read_character_data("characters.png", &palette);
 
         assert_eq!(character_data.len(), 100);
         let tile = character_data.get(14).unwrap();
@@ -280,7 +302,7 @@ mod tests {
     #[test]
     fn screen_data_from_image() {
         let palette = read_palette();
-        let character_data = read_character_data("bg0_empty_art.png", &palette);
+        let character_data = read_character_data("characters.png", &palette);
         let screen_data = read_screen_data(&palette, &character_data);
         assert_eq!(screen_data.len(), 32 * 20 - 2);
         let top_left = screen_data.get(0).unwrap();

@@ -19,7 +19,8 @@ impl BoopNode {
         if BufReader::new(&self.file)
             .lines()
             .next()
-            .unwrap()?
+            .unwrap()
+            .map_err(|e| Error::IO(e, self.name.clone()))?
             .replace(" ", "")
             .ne("x,y,w,h,callback,args")
         {

@@ -23,7 +23,9 @@ impl ScreenNode {
     pub fn new(name: impl ToString, path: PathBuf) -> Result<Self, Error> {
         Ok(Self {
             name: name.to_string(),
-            image: ImageReader::open(&path)?.decode()?,
+            image: ImageReader::open(&path)
+                .map_err(|e| Error::IO(e, path.to_str().unwrap().to_string()))?
+                .decode()?,
         })
     }
 

@@ -9,17 +9,17 @@ pub trait Savable: Sized {
     fn name(&self) -> &str;
     fn create<R: Read>(name: impl ToString, data: R) -> Self;
     fn as_data(&self) -> Vec<u8>;
-    fn read<P: AsRef<Path> + Debug>(path: P) -> Result<Self, Error> {
+    fn read<P: AsRef<Path> + Debug + Clone>(path: P) -> Result<Self, Error> {
         let name = if let Some(file_name) = path.as_ref().file_name() {
             let file_name = file_name.to_str().unwrap();
             if file_name.ends_with(".bin") {
                 file_name.replace(".bin", "")
             } else {
-                return Err(format!(
-                    "File is not a valid file (ending in `.bin`) `{file_name}`"
-                )
-                .as_str()
-                .into());
+                return Err(
+                    format!("File is not a valid file (ending in `.bin`) `{file_name}`")
+                        .as_str()
+                        .into(),
+                );
             }
         } else {
             return Err(format!("Unable to determine file name of path `{path:?}`")
@@ -27,7 +27,8 @@ pub trait Savable: Sized {
                 .into());
         };
 
-        let file = File::open(path)?;
+        let file = File::open(path.clone())
+            .map_err(|e| Error::IO(e, path.as_ref().to_str().unwrap().to_string()))?;
         Ok(Self::create(name, file))
     }
 
@@ -35,7 +36,8 @@ pub trait Savable: Sized {
         let file_name = format!("{}.bin", self.name());
         let file_path = path.as_ref().join(file_name);
         let bytes: Vec<u8> = self.as_data();
-        fs::write(&file_path, bytes)?;
+        fs::write(&file_path, bytes)
+            .map_err(|e| Error::IO(e, file_path.as_path().to_str().unwrap().to_string()))?;
         Ok(file_path)
     }
 }

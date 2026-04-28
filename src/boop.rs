@@ -1,7 +1,6 @@
 use crate::error::Error;
 use crate::project::{BoopCsv, BoopRecord};
 use std::cmp::Ordering;
-use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::ops::{Deref, DerefMut};
@@ -100,16 +99,24 @@ impl Boops {
         let dir = dir.as_ref();
 
         let boops_path = dir.join(format!("{}_boops.bin", self.name));
-        let mut boops_file = File::create(&boops_path)?;
+        let mut boops_file = File::create(&boops_path)
+            .map_err(|e| Error::IO(e, boops_path.to_str().unwrap().to_string()))?;
         let mut all_args = vec![];
-        let boop_bytes = self.boops.iter()
+        let boop_bytes = self
+            .boops
+            .iter()
             .flat_map(|boop| BoopBytes::new(boop, &mut all_args).as_bytes())
             .collect::<Vec<u8>>();
-        boops_file.write_all(&boop_bytes)?;
+        boops_file
+            .write_all(&boop_bytes)
+            .map_err(|e| Error::IO(e, boops_path.to_str().unwrap().to_string()))?;
 
         let args_path = dir.join(format!("{}_boops_args.bin", self.name));
-        let mut args_file = File::create(&args_path)?;
-        args_file.write_all(&all_args)?;
+        let mut args_file = File::create(&args_path)
+            .map_err(|e| Error::IO(e, args_path.to_str().unwrap().to_string()))?;
+        args_file
+            .write_all(&all_args)
+            .map_err(|e| Error::IO(e, args_path.to_str().unwrap().to_string()))?;
 
         Ok(dir.to_path_buf())
     }
@@ -221,7 +228,11 @@ impl BoopBytes {
             south: south.unwrap_or(255),
             west: west.unwrap_or(255),
             callback: callback.unwrap_or(255),
-            args_index: if args.is_empty() { 0 } else { all_args.len() as u8 },
+            args_index: if args.is_empty() {
+                0
+            } else {
+                all_args.len() as u8
+            },
             args_len: args.len() as u8,
         };
         all_args.extend_from_slice(&args);

@@ -1,8 +1,7 @@
-use std::ops::{Deref, DerefMut};
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use regex::Regex;
 use crate::error::Error;
+use regex::Regex;
+use std::ops::{Deref, DerefMut};
+use std::str::FromStr;
 
 pub struct BoopCsv {
     name: String,

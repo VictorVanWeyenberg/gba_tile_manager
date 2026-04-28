@@ -21,7 +21,9 @@ impl Debug for PaletteNode {
 
 impl PaletteNode {
     pub fn new(name: String, path: PathBuf) -> Result<Self, Error> {
-        let image = ImageReader::open(&path)?.decode()?;
+        let image = ImageReader::open(&path)
+            .map_err(|e| Error::IO(e, path.to_str().unwrap().to_string()))?
+            .decode()?;
         Ok(Self {
             name,
             image,

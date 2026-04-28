@@ -15,8 +15,9 @@ mod tile;
 mod tile_iter;
 
 fn main() -> Result<(), Error> {
-    let path = env::current_dir().expect("Could not get current working directory.");
-    let mut project: Project = path.clone().try_into().expect("Failed to load project.");
+    let path = env::current_dir()
+        .map_err(|e| Error::IO(e, "Current working directory".to_string()))?;
+    let mut project: Project = path.clone().try_into()?;
     println!("Loaded project in {}.", project.name());
     project.digest()?.save(path)
 }

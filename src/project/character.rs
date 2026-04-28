@@ -1,12 +1,12 @@
-use std::fmt::Debug;
-use std::path::PathBuf;
-use image::{DynamicImage, ImageReader};
 use crate::character_data::CharacterData;
 use crate::error::Error;
 use crate::palette::Palette;
 use crate::project::digest::Digests;
-use crate::project::{colors_to_palette_index, tiles_from_pal_idx};
 use crate::project::screen::ScreenNode;
+use crate::project::{colors_to_palette_index, tiles_from_pal_idx};
+use image::{DynamicImage, ImageReader};
+use std::fmt::Debug;
+use std::path::PathBuf;
 
 pub struct CharacterNode {
     name: String,
@@ -22,7 +22,9 @@ impl Debug for CharacterNode {
 
 impl CharacterNode {
     pub fn new(name: String, path: PathBuf) -> Result<Self, Error> {
-        let image = ImageReader::open(&path)?.decode()?;
+        let image = ImageReader::open(&path)
+            .map_err(|e| Error::IO(e, path.to_str().unwrap().to_string()))?
+            .decode()?;
         Ok(Self {
             name,
             image,
