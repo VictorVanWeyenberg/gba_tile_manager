@@ -72,10 +72,15 @@ impl Boops {
 
     /// Saves to `<dir>/<name>_boops.bin` and `<dir>/<name>_boops_args.bin`.
     /// Returns the directory path as a `PathBuf`.
-    pub fn save<P: AsRef<Path>>(&self, dir: P) -> Result<PathBuf, Error> {
+    pub fn save<P: AsRef<Path>>(&self, dir: P, flatten: bool) -> Result<PathBuf, Error> {
         let dir = dir.as_ref();
 
-        let boops_path = dir.join(format!("{}_boops.bin", self.name));
+        let boops_file_name = format!("{}_boops.bin", if flatten {
+            self.name.replace("/", "_")
+        } else {
+            self.name.clone()
+        });
+        let boops_path = dir.join(boops_file_name.clone());
         let mut boops_file = File::create(&boops_path)
             .map_err(|e| Error::IO(e, boops_path.to_str().unwrap().to_string()))?;
         let mut all_args = vec![];
@@ -88,7 +93,12 @@ impl Boops {
             .write_all(&boop_bytes)
             .map_err(|e| Error::IO(e, boops_path.to_str().unwrap().to_string()))?;
 
-        let args_path = dir.join(format!("{}_boops_args.bin", self.name));
+        let args_file_name = format!("{}_boops.bin", if flatten {
+            self.name.replace("/", "_")
+        } else {
+            self.name.clone()
+        });
+        let args_path = dir.join(args_file_name.clone());
         let mut args_file = File::create(&args_path)
             .map_err(|e| Error::IO(e, args_path.to_str().unwrap().to_string()))?;
         args_file
@@ -143,10 +153,10 @@ impl From<BoopCsv> for Boops {
     fn from(value: BoopCsv) -> Self {
         let mut boops = vec![];
         for from in value.iter() {
-            let north = best_boop_idx_for_direction(&from, &value, &NORTH);
-            let east = best_boop_idx_for_direction(&from, &value, &EAST);
-            let south = best_boop_idx_for_direction(&from, &value, &SOUTH);
-            let west = best_boop_idx_for_direction(&from, &value, &WEST);
+            let north = best_boop_idx_for_direction(from, &value, &NORTH);
+            let east = best_boop_idx_for_direction(from, &value, &EAST);
+            let south = best_boop_idx_for_direction(from, &value, &SOUTH);
+            let west = best_boop_idx_for_direction(from, &value, &WEST);
             boops.push(Boop::new(from, north, east, south, west))
         }
         Boops::new(value.name(), boops)
@@ -212,7 +222,7 @@ impl BoopBytes {
             },
             args_len: args.len() as u8,
         };
-        all_args.extend_from_slice(&args);
+        all_args.extend_from_slice(args);
         boop_bytes
     }
 

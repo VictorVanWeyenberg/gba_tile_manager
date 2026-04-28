@@ -5,8 +5,12 @@ use std::path::{Path, PathBuf};
 pub trait Savable: Sized {
     fn name(&self) -> &str;
     fn as_data(&self) -> Vec<u8>;
-    fn save<P: AsRef<Path>>(&self, path: P) -> Result<PathBuf, Error> {
-        let file_name = format!("{}.bin", self.name());
+    fn save<P: AsRef<Path>>(&self, path: P, flatten: bool) -> Result<PathBuf, Error> {
+        let file_name = format!("{}.bin", if flatten {
+            self.name().replace('/', "_")
+        } else {
+            self.name().to_string()
+        });
         let file_path = path.as_ref().join(file_name);
         let parent = file_path.parent().unwrap();
         if !parent.exists() {

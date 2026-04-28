@@ -25,6 +25,9 @@ struct Args {
     /// Sets the output directory. The place for the binary artifacts to go.
     #[arg(short, long, value_name = "DIRECTORY")]
     output: Option<PathBuf>,
+    /// Flattens the output artifacts into one directory.
+    #[arg(short, long, default_value_t = false)]
+    flatten: bool,
 }
 
 impl Args {
@@ -47,9 +50,11 @@ impl Args {
 
 fn main() -> Result<(), Error> {
     let args = Args::parse();
-    println!("Input: {:?}", args.input()?.to_str());
+    println!("Trying to load project from {}...", args.input()?.to_str().unwrap());
     let mut project: Project = args.input()?.try_into()?;
-    println!("Loaded project in {}.", project.name());
-    println!("Output: {:?}", args.output()?.to_str());
-    project.digest()?.save(args.output()?)
+    println!("Loaded project: {}.", project.name());
+    println!("Saving binary data to {}...", args.output()?.to_str().unwrap());
+    project.digest()?.save(args.output()?, args.flatten)?;
+    println!("Project saved successfully");
+    Ok(())
 }

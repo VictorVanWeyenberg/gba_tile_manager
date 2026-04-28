@@ -16,21 +16,21 @@ pub struct Digests {
 }
 
 impl Digests {
-    pub fn save(&self, path: PathBuf) -> Result<(), Error> {
+    pub fn save(&self, path: PathBuf, flatten: bool) -> Result<(), Error> {
         if !path.exists() {
             fs::create_dir(&path).map_err(|e| Error::IO(e, path.to_str().unwrap().to_string()))?;
         }
         for palette in &self.palettes {
-            palette.save(path.clone())?;
+            palette.save(path.clone(), flatten)?;
         }
         for character_data in &self.characters {
-            character_data.save(path.clone())?;
+            character_data.save(path.clone(), flatten)?;
         }
         for screen_data in &self.screens {
-            screen_data.save(path.clone())?;
+            screen_data.save(path.clone(), flatten)?;
         }
         for boops in &self.boops {
-            boops.save(path.clone())?;
+            boops.save(path.clone(), flatten)?;
         }
         Ok(())
     }
