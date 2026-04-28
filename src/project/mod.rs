@@ -15,7 +15,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 mod boop;
 mod character;
@@ -117,7 +117,7 @@ fn flip_tile(tile: &Tile, hflip: bool, vflip: bool) -> Tile {
 }
 
 fn colors_to_palette_index(rgbs: Vec<u8>, palette: &Palette) -> Result<Vec<u8>, Error> {
-    Ok(rgbs
+    rgbs
         .chunks_exact(3)
         .map(|c| Color::new(c[0] / 8, c[1] / 8, c[2] / 8).unwrap())
         .map(|c| {
@@ -127,7 +127,7 @@ fn colors_to_palette_index(rgbs: Vec<u8>, palette: &Palette) -> Result<Vec<u8>, 
                 .map(|idx| idx as u8)
                 .ok_or(Error::Custom(format!("Palette color {} not found", c)))
         })
-        .collect::<Result<Vec<_>, Error>>()?)
+        .collect::<Result<Vec<_>, Error>>()
 }
 
 fn tiles_from_pal_idx(pal_idx: Vec<u8>) -> Vec<Tile> {
@@ -136,7 +136,7 @@ fn tiles_from_pal_idx(pal_idx: Vec<u8>) -> Vec<Tile> {
         .tiled()
         .tile_chunked()
         .into_iter()
-        .map(|tile_data| Tile::new(tile_data))
+        .map(Tile::new)
         .collect()
 }
 
@@ -150,7 +150,7 @@ fn verify_is_png_get_file_name(file_name: String) -> Result<String, Error> {
     }
 }
 
-fn determine_boop_file(directory: &PathBuf, file_name: String) -> Result<BoopNode, Error> {
+fn determine_boop_file(directory: &Path, file_name: String) -> Result<BoopNode, Error> {
     if !file_name.ends_with(".csv") {
         return Err(Error::Custom(format!(
             "Expected boops file to be .csv. {file_name}"
@@ -159,8 +159,7 @@ fn determine_boop_file(directory: &PathBuf, file_name: String) -> Result<BoopNod
 
     let name = file_name.replace(".csv", "");
     let file = directory.join(file_name.clone());
-    let file =
-        File::open(file).map_err(|e| Error::IO(e, file_name))?;
+    let file = File::open(file).map_err(|e| Error::IO(e, file_name))?;
     Ok(BoopNode::new(name, file))
 }
 
@@ -206,7 +205,7 @@ fn screens_to_dep_graph(
 }
 
 fn dep_graph_to_nodes(
-    directory: &PathBuf,
+    directory: &Path,
     graph: HashMap<String, HashMap<String, Vec<String>>>,
 ) -> Result<Vec<PaletteNode>, Error> {
     let mut palettes = vec![];
@@ -257,7 +256,7 @@ mod tests {
 
     fn read_character_data(file_name: &str, palette: &Palette) -> CharacterData {
         let character_data =
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(&format!("resources/{file_name}"));
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("resources/{file_name}"));
         let mut character_data = CharacterNode::new(file_name.to_string(), character_data)
             .expect("Could not create character data");
         character_data.as_character_data(palette).unwrap()
@@ -275,7 +274,7 @@ mod tests {
     fn palette_from_image() {
         let palette = read_palette();
         assert_eq!(palette.len(), 6);
-        assert_eq!(palette.get(0), Some(&Color::new(5, 6, 6).unwrap()));
+        assert_eq!(palette.first(), Some(&Color::new(5, 6, 6).unwrap()));
         assert_eq!(palette.get(1), Some(&Color::new(9, 9, 13).unwrap()));
         assert_eq!(palette.get(2), Some(&Color::new(14, 13, 16).unwrap()));
         assert_eq!(palette.get(3), Some(&Color::new(27, 26, 27).unwrap()));
@@ -305,7 +304,7 @@ mod tests {
         let character_data = read_character_data("empty_art/bg0/characters.png", &palette);
         let screen_data = read_screen_data(&palette, &character_data);
         assert_eq!(screen_data.len(), 32 * 20 - 2);
-        let top_left = screen_data.get(0).unwrap();
+        let top_left = screen_data.first().unwrap();
         let top_right = screen_data.get(29).unwrap();
         let bottom_left = screen_data.get(19 * 32).unwrap();
         let bottom_right = screen_data.get(19 * 32 + 29).unwrap();

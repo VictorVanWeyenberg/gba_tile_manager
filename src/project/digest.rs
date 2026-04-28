@@ -1,10 +1,11 @@
+use crate::boop::Boops;
 use crate::character_data::CharacterData;
 use crate::error::Error;
 use crate::palette::Palette;
 use crate::savable::Savable;
 use crate::screen::ScreenData;
+use std::fs;
 use std::path::PathBuf;
-use crate::boop::Boops;
 
 #[derive(Default)]
 pub struct Digests {
@@ -16,6 +17,9 @@ pub struct Digests {
 
 impl Digests {
     pub fn save(&self, path: PathBuf) -> Result<(), Error> {
+        if !path.exists() {
+            fs::create_dir(&path).map_err(|e| Error::IO(e, path.to_str().unwrap().to_string()))?;
+        }
         for palette in &self.palettes {
             palette.save(path.clone())?;
         }
@@ -46,5 +50,4 @@ impl Digests {
     pub fn boops_mut(&mut self) -> &mut Vec<Boops> {
         &mut self.boops
     }
-
 }
