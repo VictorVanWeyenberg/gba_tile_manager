@@ -3,21 +3,36 @@ use crate::character_data::CharacterData;
 use crate::color::Color;
 use crate::error::Error;
 use crate::palette::Palette;
+use crate::project::digest::Digests;
+use crate::project::palette::PaletteNode;
 use crate::savable::Savable;
-use crate::screen::ScreenData;
 use crate::tile::Tile;
 use crate::tile_iter::TiledIterExt;
-use image::{DynamicImage, ImageReader};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
 use std::path::PathBuf;
+use crate::project::boop::BoopNode;
+use crate::project::character::CharacterNode;
+use crate::project::screen::ScreenNode;
+
+mod boop;
+mod character;
+mod csv;
+mod digest;
+mod palette;
+mod screen;
+
+pub use csv::*;
 
 #[derive(Deserialize)]
 struct Config {
     name: String,
+    #[serde(default)]
     screens: Vec<ScreenConfig>,
+    #[serde(default)]
+    boops: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -27,32 +42,11 @@ struct ScreenConfig {
     screen: String,
 }
 
-#[derive(Default)]
-pub struct Digests {
-    palettes: Vec<Palette>,
-    characters: Vec<CharacterData>,
-    screens: Vec<ScreenData>,
-}
-
-impl Digests {
-    pub fn save(&self, path: PathBuf) -> Result<(), Error> {
-        for palette in &self.palettes {
-            palette.save(path.clone())?;
-        }
-        for character_data in &self.characters {
-            character_data.save(path.clone())?;
-        }
-        for screen_data in &self.screens {
-            screen_data.save(path.clone())?;
-        }
-        Ok(())
-    }
-}
-
 #[derive(Debug)]
 pub struct Project {
     name: String,
     palettes: Vec<PaletteNode>,
+    boops: Vec<BoopNode>,
 }
 
 impl Project {
@@ -73,172 +67,6 @@ impl Project {
             palette.digest(&mut digest)?;
         }
         Ok(digest)
-    }
-}
-
-pub struct PaletteNode {
-    name: String,
-    image: image::DynamicImage,
-    character_maps: Vec<CharacterNode>,
-}
-
-impl Debug for PaletteNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}, {:?}", self.name, self.character_maps)
-    }
-}
-
-impl PaletteNode {
-    fn new(name: String, path: PathBuf) -> Result<Self, Error> {
-        let image = ImageReader::open(&path)?.decode()?;
-        Ok(Self {
-            name,
-            image,
-            character_maps: vec![],
-        })
-    }
-
-    fn verify(&self) -> Result<(), Error> {
-        if self.image.width() != 16 || self.image.height() != 16 {
-            return Err(Error::Custom(format!(
-                "Palette dimensions off ({}x{}) != (16x16)",
-                self.image.width(),
-                self.image.height()
-            )));
-        }
-        for character_map in &self.character_maps {
-            character_map.verify()?;
-        }
-        Ok(())
-    }
-
-    fn digest(&mut self, digests: &mut Digests) -> Result<(), Error> {
-        let palette = self.as_palette()?;
-        for character_map in &mut self.character_maps {
-            character_map.digest(digests, &palette)?;
-        }
-        digests.palettes.push(palette);
-        Ok(())
-    }
-
-    fn as_palette(&mut self) -> Result<Palette, Error> {
-        let colors = self
-            .image
-            .to_rgb8()
-            .chunks_exact(3)
-            .map(|c| Color::new(c[0] / 8, c[1] / 8, c[2] / 8).unwrap())
-            .collect();
-        Ok(Palette::with_colors(&self.name, colors))
-    }
-}
-
-pub struct CharacterNode {
-    name: String,
-    image: DynamicImage,
-    screens: Vec<ScreenNode>,
-}
-
-impl Debug for CharacterNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}, {:?}", self.name, self.screens)
-    }
-}
-
-impl CharacterNode {
-    fn new(name: String, path: PathBuf) -> Result<Self, Error> {
-        let image = ImageReader::open(&path)?.decode()?;
-        Ok(Self {
-            name,
-            image,
-            screens: vec![],
-        })
-    }
-
-    fn verify(&self) -> Result<(), Error> {
-        if self.image.width() != 256 || self.image.height() != 256 {
-            return Err(Error::Custom(format!(
-                "Character data dimensions off ({}x{}) != (256x256)",
-                self.image.width(),
-                self.image.height()
-            )));
-        }
-        for screen in &self.screens {
-            screen.verify()?
-        }
-        Ok(())
-    }
-
-    fn digest(&mut self, digests: &mut Digests, palette: &Palette) -> Result<(), Error> {
-        let character_data = self.as_character_data(palette)?;
-        for screen in &mut self.screens {
-            screen.digest(digests, palette, &character_data)?;
-        }
-        digests.characters.push(character_data);
-        Ok(())
-    }
-
-    fn as_character_data(&mut self, palette: &Palette) -> Result<CharacterData, Error> {
-        let buf = self.image.to_rgb8().into_raw();
-        let pal_idx = colors_to_palette_index(buf, palette)?;
-        let tiles = tiles_from_pal_idx(pal_idx);
-        Ok(CharacterData::with_tiles(self.name.clone(), tiles))
-    }
-}
-
-pub struct ScreenNode {
-    name: String,
-    image: DynamicImage,
-}
-
-impl Debug for ScreenNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-impl ScreenNode {
-    fn new(name: impl ToString, path: PathBuf) -> Result<Self, Error> {
-        Ok(Self {
-            name: name.to_string(),
-            image: ImageReader::open(&path)?.decode()?,
-        })
-    }
-
-    fn verify(&self) -> Result<(), Error> {
-        if self.image.width() != 256 || self.image.height() != 256 {
-            return Err(Error::Custom(format!(
-                "Screen data dimensions off ({}x{}) != (256x256)",
-                self.image.width(),
-                self.image.height()
-            )));
-        }
-        Ok(())
-    }
-
-    fn as_screen_data(
-        &mut self,
-        palette: &Palette,
-        character_data: &CharacterData,
-    ) -> Result<ScreenData, Error> {
-        let buf = self.image.to_rgb8().into_raw();
-        let pal_idx = colors_to_palette_index(buf, palette)?;
-        let tiles = tiles_from_pal_idx(pal_idx);
-        let characters = tiles
-            .into_iter()
-            .map(|tile| tiles_to_characters(tile, character_data))
-            .collect::<Result<Vec<_>, Error>>()?;
-        Ok(ScreenData::with_characters(&self.name, characters))
-    }
-
-    fn digest(
-        &mut self,
-        digests: &mut Digests,
-        palette: &Palette,
-        character_data: &CharacterData,
-    ) -> Result<(), Error> {
-        Ok(digests
-            .screens
-            .push(self.as_screen_data(palette, character_data)?))
     }
 }
 
@@ -316,41 +144,65 @@ fn verify_is_png_get_file_name(file_name: String) -> Result<String, Error> {
     }
 }
 
+fn determine_boop_file(directory: &PathBuf, file_name: String) -> Result<BoopNode, Error> {
+    if !file_name.ends_with(".csv") {
+        return Err(Error::Custom("Expected boops file to be .csv.".to_string()))
+    }
+
+    let name = file_name.replace(".csv", "");
+    let file = File::open(directory.join(file_name))?;
+    Ok(BoopNode::new(name, file))
+}
+
 impl TryFrom<PathBuf> for Project {
     type Error = Error;
 
     fn try_from(directory: PathBuf) -> Result<Self, Self::Error> {
         let config_path = directory.join("config.json");
         let config: Config = serde_json::from_reader(File::open(config_path)?)?;
-        let name = config.name;
-        let mut screens: HashMap<String, HashMap<String, Vec<String>>> = HashMap::new();
-        for screen in config.screens {
-            screens
-                .entry(verify_is_png_get_file_name(screen.palette)?)
-                .or_insert(HashMap::new())
-                .entry(verify_is_png_get_file_name(screen.character)?)
-                .or_insert(Vec::new())
-                .push(verify_is_png_get_file_name(screen.screen)?);
-        }
-        let mut palettes = vec![];
-        for (palette, characters) in screens {
-            let path = directory.join(format!("{palette}.png"));
-            let mut palette = PaletteNode::new(palette, path)?;
-            for (character, screens) in characters {
-                let path = directory.join(format!("{character}.png"));
-                let mut character = CharacterNode::new(character, path)?;
-                for screen in screens {
-                    let path = directory.join(format!("{screen}.png"));
-                    character.screens.push(ScreenNode::new(screen, path)?);
-                }
-                palette.character_maps.push(character);
-            }
-            palettes.push(palette);
-        }
-        let project = Project { name, palettes };
+        let screens = screens_to_dep_graph(config.screens)?;
+        let palettes = dep_graph_to_nodes(&directory, screens)?;
+        let boops = config.boops.into_iter()
+            .map(|boop| determine_boop_file(&directory, boop))
+            .collect::<Result<Vec<_>, Error>>()?;
+        let project = Project { name: config.name, palettes, boops };
         project.verify()?;
         Ok(project)
     }
+}
+
+fn screens_to_dep_graph(
+    screen_configs: Vec<ScreenConfig>,
+) -> Result<HashMap<String, HashMap<String, Vec<String>>>, Error> {
+    let mut screens = HashMap::new();
+    for screen in screen_configs {
+        screens
+            .entry(verify_is_png_get_file_name(screen.palette)?)
+            .or_insert(HashMap::new())
+            .entry(verify_is_png_get_file_name(screen.character)?)
+            .or_insert(Vec::new())
+            .push(verify_is_png_get_file_name(screen.screen)?);
+    }
+    Ok(screens)
+}
+
+fn dep_graph_to_nodes(directory: &PathBuf, graph: HashMap<String, HashMap<String, Vec<String>>>) -> Result<Vec<PaletteNode>, Error> {
+    let mut palettes = vec![];
+    for (palette, characters) in graph {
+        let path = directory.join(format!("{palette}.png"));
+        let mut palette = PaletteNode::new(palette, path)?;
+        for (character, screens) in characters {
+            let path = directory.join(format!("{character}.png"));
+            let mut character = CharacterNode::new(character, path)?;
+            for screen in screens {
+                let path = directory.join(format!("{screen}.png"));
+                character.screens_mut().push(ScreenNode::new(screen, path)?);
+            }
+            palette.character_maps_mut().push(character);
+        }
+        palettes.push(palette);
+    }
+    Ok(palettes)
 }
 
 #[cfg(test)]

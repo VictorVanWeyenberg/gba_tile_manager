@@ -1,0 +1,50 @@
+use crate::character_data::CharacterData;
+use crate::error::Error;
+use crate::palette::Palette;
+use crate::savable::Savable;
+use crate::screen::ScreenData;
+use std::path::PathBuf;
+use crate::boop::Boops;
+
+#[derive(Default)]
+pub struct Digests {
+    palettes: Vec<Palette>,
+    characters: Vec<CharacterData>,
+    screens: Vec<ScreenData>,
+    boops: Vec<Boops>,
+}
+
+impl Digests {
+    pub fn save(&self, path: PathBuf) -> Result<(), Error> {
+        for palette in &self.palettes {
+            palette.save(path.clone())?;
+        }
+        for character_data in &self.characters {
+            character_data.save(path.clone())?;
+        }
+        for screen_data in &self.screens {
+            screen_data.save(path.clone())?;
+        }
+        for boops in &self.boops {
+            boops.save(path.clone())?;
+        }
+        Ok(())
+    }
+
+    pub fn palettes_mut(&mut self) -> &mut Vec<Palette> {
+        &mut self.palettes
+    }
+
+    pub fn characters_mut(&mut self) -> &mut Vec<CharacterData> {
+        &mut self.characters
+    }
+
+    pub fn screens_mut(&mut self) -> &mut Vec<ScreenData> {
+        &mut self.screens
+    }
+
+    pub fn boops_mut(&mut self) -> &mut Vec<Boops> {
+        &mut self.boops
+    }
+
+}

@@ -6,6 +6,8 @@ pub enum Error {
     Serde(serde_json::Error),
     Custom(String),
     Image(image::ImageError),
+    Regex(regex::Error),
+    ParseInt(std::num::ParseIntError),
 }
 
 impl std::error::Error for Error {}
@@ -37,5 +39,17 @@ impl From<&str> for Error {
 impl From<image::ImageError> for Error {
     fn from(value: image::ImageError) -> Self {
         Error::Image(value)
+    }
+}
+
+impl From<regex::Error> for Error {
+    fn from(value: regex::Error) -> Self {
+        Error::Regex(value)
+    }
+}
+
+impl From<std::num::ParseIntError> for Error {
+    fn from(value: std::num::ParseIntError) -> Self {
+        Error::ParseInt(value)
     }
 }

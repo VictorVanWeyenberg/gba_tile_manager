@@ -11,5 +11,8 @@
       "character": "bg1_empty_art.png",
       "screen": "empty_art_bg1.png"
     }
+  ],
+  "boops": [
+    "empty_art_boops.csv"
   ]
 }
