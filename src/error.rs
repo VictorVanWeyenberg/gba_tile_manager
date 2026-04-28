@@ -9,6 +9,7 @@ pub enum Error {
     Image(image::ImageError),
     Regex(regex::Error),
     ParseInt(std::num::ParseIntError),
+    Png(png::EncodingError),
 }
 
 impl std::error::Error for Error {}
@@ -46,5 +47,11 @@ impl From<regex::Error> for Error {
 impl From<std::num::ParseIntError> for Error {
     fn from(value: std::num::ParseIntError) -> Self {
         Error::ParseInt(value)
+    }
+}
+
+impl From<png::EncodingError> for Error {
+    fn from(value: png::EncodingError) -> Self {
+        Error::Png(value)
     }
 }
