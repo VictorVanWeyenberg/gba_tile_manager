@@ -1,6 +1,5 @@
 use crate::savable::Savable;
 use crate::tile::Tile;
-use std::io::Read;
 use std::ops::Deref;
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -35,18 +34,6 @@ impl Deref for CharacterData {
 impl Savable for CharacterData {
     fn name(&self) -> &str {
         &self.name
-    }
-
-    fn create<R: Read>(name: impl ToString, mut data: R) -> Self {
-        let mut buf = [0u8; 32];
-        let mut tiles = vec![];
-        while data.read_exact(&mut buf).is_ok() {
-            tiles.push(Tile::from(buf));
-        }
-        CharacterData {
-            name: name.to_string(),
-            tiles,
-        }
     }
 
     fn as_data(&self) -> Vec<u8> {

@@ -265,7 +265,7 @@ mod tests {
 
     fn read_screen_data(palette: &Palette, character_data: &CharacterData) -> ScreenData {
         let screen_data = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../resources/empty_art/bg0/screen.png");
+            .join("resources/empty_art/bg0/screen.png");
         let mut screen_data = ScreenNode::new("screen.png".to_string(), screen_data)
             .expect("Could not create screen data");
         screen_data.as_screen_data(palette, character_data).unwrap()
@@ -286,7 +286,7 @@ mod tests {
     #[test]
     fn character_data_from_image() {
         let palette = read_palette();
-        let character_data = read_character_data("characters.png", &palette);
+        let character_data = read_character_data("empty_art/bg1/characters.png", &palette);
 
         assert_eq!(character_data.len(), 100);
         let tile = character_data.get(14).unwrap();
@@ -302,7 +302,7 @@ mod tests {
     #[test]
     fn screen_data_from_image() {
         let palette = read_palette();
-        let character_data = read_character_data("characters.png", &palette);
+        let character_data = read_character_data("empty_art/bg0/characters.png", &palette);
         let screen_data = read_screen_data(&palette, &character_data);
         assert_eq!(screen_data.len(), 32 * 20 - 2);
         let top_left = screen_data.get(0).unwrap();

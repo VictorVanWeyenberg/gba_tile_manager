@@ -10,7 +10,6 @@ const NORTH: (f32, f32) = (0.0, -1.0);
 const EAST: (f32, f32) = (1.0, 0.0);
 const SOUTH: (f32, f32) = (0.0, 1.0);
 const WEST: (f32, f32) = (-1.0, 0.0);
-const DIRECTIONS: [(f32, f32); 4] = [NORTH, EAST, SOUTH, WEST];
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Boop {
@@ -55,24 +54,6 @@ impl Boop {
             args: args.clone(),
         }
     }
-
-    pub fn from_bytes(bytes: &[u8; 11], args_data: &[u8]) -> Self {
-        let args_index = bytes[9] as usize;
-        let args_len = bytes[10] as usize;
-        let args = args_data[args_index..args_index + args_len].to_vec();
-        Self {
-            x: bytes[0],
-            y: bytes[1],
-            w: bytes[2],
-            h: bytes[3],
-            north: Some(bytes[4]),
-            east: Some(bytes[5]),
-            south: Some(bytes[6]),
-            west: Some(bytes[7]),
-            callback: Some(bytes[8]),
-            args,
-        }
-    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -87,10 +68,6 @@ impl Boops {
             name: name.to_string(),
             boops,
         }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
     }
 
     /// Saves to `<dir>/<name>_boops.bin` and `<dir>/<name>_boops_args.bin`.

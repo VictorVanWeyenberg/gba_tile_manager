@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+#[allow(unused)]
 #[derive(Debug)]
 pub enum Error {
     IO(std::io::Error, String), // The file path or render step name.
