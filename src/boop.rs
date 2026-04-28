@@ -93,7 +93,7 @@ impl Boops {
             .write_all(&boop_bytes)
             .map_err(|e| Error::IO(e, boops_path.to_str().unwrap().to_string()))?;
 
-        let args_file_name = format!("{}_boops.bin", if flatten {
+        let args_file_name = format!("{}_boops_args.bin", if flatten {
             self.name.replace("/", "_")
         } else {
             self.name.clone()
