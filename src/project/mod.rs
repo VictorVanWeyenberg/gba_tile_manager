@@ -54,11 +54,11 @@ impl Project {
         &self.name
     }
 
-    fn verify(&self) -> Result<(), Error> {
+    fn verify(&mut self) -> Result<(), Error> {
         for palettes in &self.palettes {
             palettes.verify()?;
         }
-        for boop in &self.boops {
+        for boop in &mut self.boops {
             boop.verify()?;
         }
         Ok(())
@@ -179,7 +179,7 @@ impl TryFrom<PathBuf> for Project {
             .into_iter()
             .map(|boop| determine_boop_file(&directory, boop))
             .collect::<Result<Vec<_>, Error>>()?;
-        let project = Project {
+        let mut project = Project {
             name: config.name,
             palettes,
             boops,

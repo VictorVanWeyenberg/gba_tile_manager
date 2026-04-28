@@ -1,8 +1,8 @@
 use crate::error::Error;
+use crate::project::csv::{BoopCsv, BoopRecord};
 use crate::project::digest::Digests;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
-use crate::project::csv::{BoopCsv, BoopRecord};
+use std::io::{BufRead, BufReader, Seek, SeekFrom};
 
 #[derive(Debug)]
 pub struct BoopNode {
@@ -12,10 +12,13 @@ pub struct BoopNode {
 
 impl BoopNode {
     pub fn new(name: impl ToString, file: File) -> Self {
-        Self { name: name.to_string(), file }
+        Self {
+            name: name.to_string(),
+            file,
+        }
     }
 
-    pub fn verify(&self) -> Result<(), Error> {
+    pub fn verify(&mut self) -> Result<(), Error> {
         if BufReader::new(&self.file)
             .lines()
             .next()
@@ -24,24 +27,30 @@ impl BoopNode {
             .replace(" ", "")
             .ne("x,y,w,h,callback,args")
         {
-            return Err(Error::Custom("Boops csv header should be \"x,y,w,h,callback,args\" (spaces allowed).".to_string()))
+            return Err(Error::Custom(
+                "Boops csv header should be \"x,y,w,h,callback,args\" (spaces allowed)."
+                    .to_string(),
+            ));
         }
+        self.file.seek(SeekFrom::Start(0))
+            .map_err(|e| Error::IO(e, format!("Could not seek in {:?}", &self.file)))?;
         Ok(())
     }
 
     pub fn as_boops(&self) -> Result<BoopCsv, Error> {
-        let mut lines = BufReader::new(&self.file).lines();
-        lines.next(); // Neglect first
-        let mut records = vec![];
-        while let Some(Ok(line)) = lines.next() {
-            records.push(BoopRecord::try_from(line)?)
-        }
-        Ok(BoopCsv::new(&self.name, records))
+        let records = BufReader::new(&self.file)
+            .lines()
+            .skip(1)
+            .map(|line| {
+                line.map_err(|e| Error::IO(e, format!("Could not read line from {:?}", &self.file)))
+                    .and_then(BoopRecord::try_from)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(BoopCsv::new(self.name.clone(), records))
     }
 
     pub fn digest(&self, digests: &mut Digests) -> Result<(), Error> {
-        Ok(digests
-            .boops_mut()
-            .push(self.as_boops()?.into()))
+        digests.boops_mut().push(self.as_boops()?.into());
+        Ok(())
     }
 }
