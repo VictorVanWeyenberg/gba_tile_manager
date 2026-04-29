@@ -11,6 +11,12 @@
       "screen": "empty_art/bg1/screen.png"
     }
   ],
+  "objects": [
+    {
+      "palette": "object_palette.png",
+      "character": "object_characters.png"
+    }
+  ],
   "boops": [
     "empty_art.csv"
   ]

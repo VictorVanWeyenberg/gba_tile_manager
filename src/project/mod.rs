@@ -31,6 +31,8 @@ struct Config {
     #[serde(default)]
     screens: Vec<ScreenConfig>,
     #[serde(default)]
+    objects: Vec<ObjectConfig>,
+    #[serde(default)]
     boops: Vec<String>,
 }
 
@@ -39,6 +41,12 @@ struct ScreenConfig {
     palette: String,
     character: String,
     screen: String,
+}
+
+#[derive(Deserialize)]
+struct ObjectConfig {
+    palette: String,
+    character: String,
 }
 
 #[derive(Debug)]
@@ -68,46 +76,6 @@ impl Project {
         }
         Ok(digest)
     }
-}
-
-fn tiles_to_characters(needle: Tile, haystack: &CharacterData) -> Result<Character, Error> {
-    for (idx, tile) in haystack.iter().enumerate() {
-        if &needle == tile {
-            return Ok(Character::new(idx, false, false, 0));
-        }
-        if &flip_tile(&needle, true, false) == tile {
-            return Ok(Character::new(idx, true, false, 0));
-        }
-        if &flip_tile(&needle, false, true) == tile {
-            return Ok(Character::new(idx, false, true, 0));
-        }
-        if &flip_tile(&needle, true, true) == tile {
-            return Ok(Character::new(idx, true, true, 0));
-        }
-    }
-    let text_tile = needle
-        .chunks_exact(8)
-        .map(|chunk| format!("{chunk:?}"))
-        .reduce(|a, b| format!("{a:?}\n{b:?}"))
-        .unwrap_or_else(|| String::from(""));
-    let character_data_name = haystack.name();
-    Err(Error::Custom(format!(
-        "Tile not found in character data {character_data_name}\
-        \
-        {text_tile}"
-    )))
-}
-
-fn flip_tile(tile: &Tile, hflip: bool, vflip: bool) -> Tile {
-    let mut result = [0u8; 64];
-    for y in 0..8 {
-        for x in 0..8 {
-            let src_x = if hflip { 7 - x } else { x };
-            let src_y = if vflip { 7 - y } else { y };
-            result[y * 8 + x] = tile[src_y * 8 + src_x];
-        }
-    }
-    Tile::new(result)
 }
 
 fn colors_to_palette_index(rgbs: Vec<u8>, palette: &Palette) -> Result<Vec<u8>, Error> {
@@ -166,7 +134,7 @@ impl TryFrom<PathBuf> for Project {
             File::open(config_path.clone())
                 .map_err(|e| Error::IO(e, config_path.to_str().unwrap().to_string()))?,
         )?;
-        let screens = screens_to_dep_graph(config.screens)?;
+        let screens = screens_to_dep_graph(config.screens, config.objects)?;
         let palettes = dep_graph_to_nodes(&directory, screens)?;
         let boops = config
             .boops
@@ -184,6 +152,7 @@ impl TryFrom<PathBuf> for Project {
 
 fn screens_to_dep_graph(
     screen_configs: Vec<ScreenConfig>,
+    object_configs: Vec<ObjectConfig>,
 ) -> Result<HashMap<String, HashMap<String, Vec<String>>>, Error> {
     let mut screens = HashMap::new();
     for screen in screen_configs {
@@ -193,6 +162,13 @@ fn screens_to_dep_graph(
             .entry(verify_is_png_get_file_name(screen.character)?)
             .or_insert(Vec::new())
             .push(verify_is_png_get_file_name(screen.screen)?);
+    }
+    for object in object_configs {
+        screens
+            .entry(verify_is_png_get_file_name(object.palette)?)
+            .or_insert(HashMap::new())
+            .entry(verify_is_png_get_file_name(object.character)?)
+            .or_insert(Vec::new());
     }
     Ok(screens)
 }
