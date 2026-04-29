@@ -28,7 +28,6 @@ pub use csv::*;
 
 #[derive(Deserialize)]
 struct Config {
-    name: String,
     #[serde(default)]
     screens: Vec<ScreenConfig>,
     #[serde(default)]
@@ -44,16 +43,11 @@ struct ScreenConfig {
 
 #[derive(Debug)]
 pub struct Project {
-    name: String,
     palettes: Vec<PaletteNode>,
     boops: Vec<BoopNode>,
 }
 
 impl Project {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
     fn verify(&mut self) -> Result<(), Error> {
         for palettes in &self.palettes {
             palettes.verify()?;
@@ -180,7 +174,6 @@ impl TryFrom<PathBuf> for Project {
             .map(|boop| determine_boop_file(&directory, boop))
             .collect::<Result<Vec<_>, Error>>()?;
         let mut project = Project {
-            name: config.name,
             palettes,
             boops,
         };

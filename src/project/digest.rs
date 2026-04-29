@@ -16,23 +16,24 @@ pub struct Digests {
 }
 
 impl Digests {
-    pub fn save(&self, path: PathBuf, flatten: bool) -> Result<(), Error> {
+    pub fn save(&self, path: PathBuf, flatten: bool) -> Result<Vec<PathBuf>, Error> {
         if !path.exists() {
             fs::create_dir(&path).map_err(|e| Error::IO(e, path.to_str().unwrap().to_string()))?;
         }
+        let mut paths = vec![];
         for palette in &self.palettes {
-            palette.save(path.clone(), flatten)?;
+            paths.push(palette.save(path.clone(), flatten)?);
         }
         for character_data in &self.characters {
-            character_data.save(path.clone(), flatten)?;
+            paths.push(character_data.save(path.clone(), flatten)?);
         }
         for screen_data in &self.screens {
-            screen_data.save(path.clone(), flatten)?;
+            paths.push(screen_data.save(path.clone(), flatten)?);
         }
         for boops in &self.boops {
-            boops.save(path.clone(), flatten)?;
+            paths.extend(boops.save(path.clone(), flatten)?);
         }
-        Ok(())
+        Ok(paths)
     }
 
     pub fn palettes_mut(&mut self) -> &mut Vec<Palette> {

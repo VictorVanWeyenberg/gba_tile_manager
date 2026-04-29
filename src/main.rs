@@ -1,8 +1,8 @@
-use crate::project::Project;
-use std::env;
-use std::path::PathBuf;
-use clap::Parser;
 use crate::error::Error;
+use crate::project::Project;
+use clap::Parser;
+use std::path::PathBuf;
+use std::{env, fs};
 
 mod boop;
 mod character;
@@ -37,24 +37,39 @@ impl Args {
         } else {
             self.input.clone().ok_or_else(|| unreachable!())
         }
+        .map(|input| {
+            fs::canonicalize(&input)
+                .unwrap_or_else(|_| panic!("Output path: {:?} does not exist", input))
+        })
     }
 
     pub fn output(&self) -> Result<PathBuf, Error> {
-        if self.output.is_none() {
+        let output = if self.output.is_none() {
             env::current_dir().map_err(|e| Error::IO(e, "Current working directory".to_string()))
         } else {
             self.output.clone().ok_or_else(|| unreachable!())
+        };
+
+        if let Ok(output) = &output
+            && !output.exists()
+        {
+            fs::create_dir_all(output)
+                .map_err(|e| Error::IO(e, output.to_str().unwrap().to_string()))?;
         }
+
+        output.map(|output| {
+            fs::canonicalize(&output)
+                .unwrap_or_else(|_| panic!("Output path: {:?} does not exist", output))
+        })
     }
 }
 
 fn main() -> Result<(), Error> {
     let args = Args::parse();
-    println!("Trying to load project from {}...", args.input()?.to_str().unwrap());
     let mut project: Project = args.input()?.try_into()?;
-    println!("Loaded project: {}.", project.name());
-    println!("Saving binary data to {}...", args.output()?.to_str().unwrap());
-    project.digest()?.save(args.output()?, args.flatten)?;
-    println!("Project saved successfully");
+    let paths = project.digest()?.save(args.output()?, args.flatten)?;
+    for path in paths {
+        println!("{}", path.to_str().unwrap());
+    }
     Ok(())
 }

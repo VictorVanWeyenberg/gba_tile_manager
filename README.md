@@ -8,7 +8,6 @@ The `config.json` tells GBATM which files to use and which files depend on each 
 
 ```json
 {
-  "name": "gbatm_test",
   "screens": [
     // -- snip --  Refer to [Screens](## Screens) below.
   ],

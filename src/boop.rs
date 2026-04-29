@@ -14,11 +14,10 @@ const WEST: (f32, f32) = (-1.0, 0.0);
 // Palette indices
 const IDX_TRANSPARENT: u8 = 0; // black, fully transparent
 const IDX_BORDER_FILL: u8 = 1; // grey, half-transparent (border body)
-const IDX_BORDER_EDGE: u8 = 2; // grey, half-transparent (same, kept for clarity)
-const IDX_NORTH: u8 = 3;       // red,    full opacity
-const IDX_EAST: u8 = 4;        // yellow, full opacity
-const IDX_SOUTH: u8 = 5;       // green,  full opacity
-const IDX_WEST: u8 = 6;        // blue,   full opacity
+const IDX_NORTH: u8 = 3; // red,    full opacity
+const IDX_EAST: u8 = 4; // yellow, full opacity
+const IDX_SOUTH: u8 = 5; // green,  full opacity
+const IDX_WEST: u8 = 6; // blue,   full opacity
 
 const W: usize = 256;
 const LINK_OFFSET: i32 = 4; // pixel offset so opposing links don't overlap
@@ -84,7 +83,7 @@ impl Boops {
 
     /// Saves to `<dir>/<name>_boops.bin` and `<dir>/<name>_boops_args.bin`.
     /// Returns the directory path as a `PathBuf`.
-    pub fn save<P: AsRef<Path>>(&self, dir: P, flatten: bool) -> Result<PathBuf, Error> {
+    pub fn save<P: AsRef<Path>>(&self, dir: P, flatten: bool) -> Result<Vec<PathBuf>, Error> {
         let dir = dir.as_ref();
         let mut all_args = vec![];
         let boop_bytes = self
@@ -93,14 +92,20 @@ impl Boops {
             .flat_map(|boop| BoopBytes::new(boop, &mut all_args).as_bytes())
             .collect::<Vec<u8>>();
 
-        self.write_boops_file(dir, flatten, "_boops.bin", boop_bytes)?;
-        self.write_boops_file(dir, flatten, "_boops_args.bin", all_args)?;
-        self.write_to_png(dir, flatten)?;
-
-        Ok(dir.to_path_buf())
+        Ok(vec![
+            self.write_boops_file(dir, flatten, "_boops.bin", boop_bytes)?,
+            self.write_boops_file(dir, flatten, "_boops_args.bin", all_args)?,
+            self.write_to_png(dir, flatten)?,
+        ])
     }
 
-    fn write_boops_file(&self, dir: &Path, flatten: bool, suffix: &str, boop_bytes: Vec<u8>) -> Result<(), Error> {
+    fn write_boops_file(
+        &self,
+        dir: &Path,
+        flatten: bool,
+        suffix: &str,
+        boop_bytes: Vec<u8>,
+    ) -> Result<PathBuf, Error> {
         let boops_file_name = self.flatten_and_suffix(flatten, suffix);
         let boops_path = dir.join(boops_file_name.clone());
         let mut boops_file = File::create(&boops_path)
@@ -108,21 +113,25 @@ impl Boops {
         boops_file
             .write_all(&boop_bytes)
             .map_err(|e| Error::IO(e, boops_path.to_str().unwrap().to_string()))?;
-        Ok(())
+        Ok(boops_path)
     }
 
     fn flatten_and_suffix(&self, flatten: bool, suffix: &str) -> String {
-        format!("{}{}", if flatten {
-            self.name.replace("/", "_")
-        } else {
-            self.name.clone()
-        }, suffix)
+        format!(
+            "{}{}",
+            if flatten {
+                self.name.replace("/", "_")
+            } else {
+                self.name.clone()
+            },
+            suffix
+        )
     }
 
-    fn write_to_png(&self, dir: &Path, flatten: bool) -> Result<(), Error> {
+    fn write_to_png(&self, dir: &Path, flatten: bool) -> Result<PathBuf, Error> {
         let boops_file_name = self.flatten_and_suffix(flatten, "_boops.png");
         let boops_path = dir.join(boops_file_name.clone());
-        let file = File::create(boops_path).unwrap();
+        let file = File::create(&boops_path).unwrap();
         let writer = BufWriter::new(file);
         let data = self.to_png()?;
 
@@ -133,13 +142,13 @@ impl Boops {
 
         // PLTE: RGB triples
         encoder.set_palette(vec![
-            0,   0,   0,   // 0: transparent black
+            0, 0, 0, // 0: transparent black
             128, 128, 128, // 1: grey (border)
             128, 128, 128, // 2: grey (border edge, same)
-            255, 0,   0,   // 3: red   (north)
-            255, 255, 0,   // 4: yellow (east)
-            0,   255, 0,   // 5: green  (south)
-            0,   0,   255, // 6: blue   (west)
+            255, 0, 0, // 3: red   (north)
+            255, 255, 0, // 4: yellow (east)
+            0, 255, 0, // 5: green  (south)
+            0, 0, 255, // 6: blue   (west)
         ]);
 
         // tRNS: alpha per palette entry
@@ -155,7 +164,8 @@ impl Boops {
 
         let mut writer = encoder.write_header()?;
         writer.write_image_data(&data)?;
-        Ok(writer.finish()?)
+        writer.finish()?;
+        Ok(boops_path)
     }
 
     fn to_png(&self) -> Result<Vec<u8>, Error> {
@@ -193,20 +203,28 @@ impl Boops {
                 if cx >= 0 && cy >= 0 && (cx as usize) < W && (cy as usize) < W {
                     canvas[cy as usize * W + cx as usize] = idx;
                 }
-                if cx == x1 && cy == y1 { break; }
+                if cx == x1 && cy == y1 {
+                    break;
+                }
                 let e2 = 2 * err;
-                if e2 > -dy { err -= dy; cx += sx; }
-                if e2 < dx  { err += dx; cy += sy; }
+                if e2 > -dy {
+                    err -= dy;
+                    cx += sx;
+                }
+                if e2 < dx {
+                    err += dx;
+                    cy += sy;
+                }
             }
         };
 
         for boop in &self.boops {
             let cx = boop.x as i32 + boop.w as i32 / 2;
             let cy = boop.y as i32 + boop.h as i32 / 2;
-            let top    = boop.y as i32;
+            let top = boop.y as i32;
             let bottom = boop.y as i32 + boop.h as i32 - 1;
-            let left   = boop.x as i32;
-            let right  = boop.x as i32 + boop.w as i32 - 1;
+            let left = boop.x as i32;
+            let right = boop.x as i32 + boop.w as i32 - 1;
 
             // North link: leaves from top-center (offset left), arrives at bottom-center of dest (offset left)
             if let Some(ni) = boop.north {
@@ -215,8 +233,10 @@ impl Boops {
                     let dest_bottom = dest.y as i32 + dest.h as i32 - 1;
                     draw_line(
                         &mut canvas,
-                        cx - LINK_OFFSET, top,
-                        dest_cx - LINK_OFFSET, dest_bottom,
+                        cx - LINK_OFFSET,
+                        top,
+                        dest_cx - LINK_OFFSET,
+                        dest_bottom,
                         IDX_NORTH,
                     );
                 }
@@ -225,12 +245,14 @@ impl Boops {
             // East link: leaves from right-center (offset up), arrives at left-center of dest (offset up)
             if let Some(ei) = boop.east {
                 if let Some(dest) = self.boops.get(ei as usize) {
-                    let dest_left  = dest.x as i32;
-                    let dest_cy    = dest.y as i32 + dest.h as i32 / 2;
+                    let dest_left = dest.x as i32;
+                    let dest_cy = dest.y as i32 + dest.h as i32 / 2;
                     draw_line(
                         &mut canvas,
-                        right, cy - LINK_OFFSET,
-                        dest_left, dest_cy - LINK_OFFSET,
+                        right,
+                        cy - LINK_OFFSET,
+                        dest_left,
+                        dest_cy - LINK_OFFSET,
                         IDX_EAST,
                     );
                 }
@@ -239,12 +261,14 @@ impl Boops {
             // South link: leaves from bottom-center (offset right), arrives at top-center of dest (offset right)
             if let Some(si) = boop.south {
                 if let Some(dest) = self.boops.get(si as usize) {
-                    let dest_cx  = dest.x as i32 + dest.w as i32 / 2;
+                    let dest_cx = dest.x as i32 + dest.w as i32 / 2;
                     let dest_top = dest.y as i32;
                     draw_line(
                         &mut canvas,
-                        cx + LINK_OFFSET, bottom,
-                        dest_cx + LINK_OFFSET, dest_top,
+                        cx + LINK_OFFSET,
+                        bottom,
+                        dest_cx + LINK_OFFSET,
+                        dest_top,
                         IDX_SOUTH,
                     );
                 }
@@ -254,11 +278,13 @@ impl Boops {
             if let Some(wi) = boop.west {
                 if let Some(dest) = self.boops.get(wi as usize) {
                     let dest_right = dest.x as i32 + dest.w as i32 - 1;
-                    let dest_cy    = dest.y as i32 + dest.h as i32 / 2;
+                    let dest_cy = dest.y as i32 + dest.h as i32 / 2;
                     draw_line(
                         &mut canvas,
-                        left, cy + LINK_OFFSET,
-                        dest_right, dest_cy + LINK_OFFSET,
+                        left,
+                        cy + LINK_OFFSET,
+                        dest_right,
+                        dest_cy + LINK_OFFSET,
                         IDX_WEST,
                     );
                 }
