@@ -1,5 +1,3 @@
-use crate::character::Character;
-use crate::character_data::CharacterData;
 use crate::color::Color;
 use crate::error::Error;
 use crate::palette::Palette;
@@ -8,7 +6,6 @@ use crate::project::character::CharacterNode;
 use crate::project::digest::Digests;
 use crate::project::palette::PaletteNode;
 use crate::project::screen::ScreenNode;
-use crate::savable::Savable;
 use crate::tile::Tile;
 use crate::tile_iter::TiledIterExt;
 use serde::Deserialize;
