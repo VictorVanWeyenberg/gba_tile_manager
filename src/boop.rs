@@ -92,10 +92,11 @@ impl Boops {
             .flat_map(|boop| BoopBytes::new(boop, &mut all_args).as_bytes())
             .collect::<Vec<u8>>();
 
+        self.write_to_png(dir, flatten)?;
+
         Ok(vec![
             self.write_boops_file(dir, flatten, "_boops.bin", boop_bytes)?,
             self.write_boops_file(dir, flatten, "_boops_args.bin", all_args)?,
-            self.write_to_png(dir, flatten)?,
         ])
     }
 
